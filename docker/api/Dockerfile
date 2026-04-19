@@ -8,14 +8,7 @@ WORKDIR /app
 FROM base AS dev
 CMD ["pnpm", "--filter", "@ticker-lab/api", "dev"]
 
-# ─── Dependencies (production) ────────────────────────────────
-FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY apps/api/package.json ./apps/api/
-COPY packages/shared/package.json ./packages/shared/
-RUN pnpm install --frozen-lockfile --prod
-
-# ─── Builder ──────────────────────────────────────────────────
+# ─── Builder ─────────────────────────────────────────────────
 FROM base AS builder
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
@@ -23,17 +16,18 @@ COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm --filter @ticker-lab/api build
+RUN pnpm --filter @ticker-lab/api deploy --legacy --prod /prod
 
 # ─── Production ───────────────────────────────────────────────
 FROM node:24-alpine AS prod
 WORKDIR /app
 ENV NODE_ENV=production
 
+COPY --from=builder /prod/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/src/views ./views
+COPY --from=builder /app/apps/api/src/views ./dist/views
 COPY --from=builder /app/apps/api/openapi.yaml ./openapi.yaml
 COPY --from=builder /app/apps/api/drizzle ./drizzle
-COPY --from=deps /app/node_modules ./node_modules
 
 EXPOSE 3000
 USER node

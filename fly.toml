@@ -1,5 +1,5 @@
 app = "tickerlab"
-primary_region = "mad"
+primary_region = "cdg"
 
 [build]
   dockerfile = "docker/api/Dockerfile"
