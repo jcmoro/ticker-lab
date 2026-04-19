@@ -12,8 +12,10 @@ Financial data dashboard that ingests public economic data daily and displays it
 | Frontend | Fastify SSR (Eta templates) |
 | Database | PostgreSQL 16 + Drizzle ORM |
 | Contract | OpenAPI 3.1 (source of truth) |
-| Quality | Biome + Vitest (18 tests) |
-| Infra | Docker + GitHub Actions + Fly.io |
+| Quality | Biome + Vitest (26 tests) |
+| Infra | Docker (dev) + Render + Neon + GitHub Actions |
+
+**Live:** https://tickerlab.onrender.com
 
 ## Quick Start
 
@@ -60,7 +62,7 @@ make clean         # Full cleanup
 ```
 apps/api/src/
 ├── domain/           Entities, value objects, ports
-├── application/      Use cases (IngestDailyRates, GetLatestRates, GetRatesByDate)
+├── application/      Use cases (IngestDailyRates, GetLatestRates, GetRatesByDate, GetRateHistory)
 ├── infrastructure/   Adapters (Fastify, Drizzle, Frankfurter, jobs)
 ├── views/            SSR templates (Eta)
 └── main.ts           Composition root

@@ -105,53 +105,34 @@ curl http://localhost:3000/api/v1/exchange-rates/latest | jq
 
 Should return 29 currency rates with the latest ECB business day date.
 
-## Production (Fly.io)
+## Production (Render + Neon)
 
-### First-time setup
+### Architecture
 
-```bash
-# Install Fly CLI
-curl -L https://fly.io/install.sh | sh
-
-# Login
-fly auth login
-
-# Create the app
-fly launch --no-deploy
-
-# Create Postgres (free tier)
-fly postgres create --name tickerlab-db --region mad --vm-size shared-cpu-1x --volume-size 1
-
-# Attach Postgres (sets DATABASE_URL secret automatically)
-fly postgres attach tickerlab-db
-
-# Deploy
-fly deploy
-```
+- **App:** Render free tier (Node.js native runtime, auto-deploy from GitHub)
+- **Database:** Neon free tier (serverless Postgres, Frankfurt EU)
+- **Cron:** GitHub Actions (Mon-Fri 16:30 UTC, runs ingestion directly against Neon)
 
 ### Deploy
 
-Deployments happen automatically on push to `main` via GitHub Actions. To deploy manually:
+Deployments happen automatically on push to `main`. Render detects the push, builds, and deploys. To trigger manually, use the Render dashboard or:
 
 ```bash
-fly deploy
+make deploy  # requires RENDER_DEPLOY_HOOK env var
 ```
-
-The `release_command` in `fly.toml` runs database migrations before the new version goes live.
 
 ### Required secrets
 
-```bash
-# DATABASE_URL is set automatically by `fly postgres attach`
-# No other secrets needed (Frankfurter API has no key)
-```
+**Render environment variables** (set in Render dashboard):
+- `DATABASE_URL` — Neon connection string
+- `NODE_ENV` = `production`
+- `API_PORT` = `3000`
+- `API_HOST` = `0.0.0.0`
+- `FRANKFURTER_BASE_URL` = `https://api.frankfurter.dev`
 
-For GitHub Actions deployment, set the `FLY_API_TOKEN` secret in the repository:
-
-```bash
-fly tokens create deploy -x 999999h
-# Copy the token to GitHub → Settings → Secrets → FLY_API_TOKEN
-```
+**GitHub repository secrets** (Settings → Secrets):
+- `DATABASE_URL` — same Neon connection string (used by ingestion cron)
+- `RENDER_DEPLOY_HOOK` — (optional) Render deploy hook URL
 
 ### Daily ingestion
 
@@ -161,40 +142,39 @@ ECB exchange rates are ingested automatically Mon-Fri at 16:30 UTC via GitHub Ac
 # From GitHub Actions
 gh workflow run "Daily Ingestion"
 
-# Or via Fly SSH
-fly ssh console -C "node dist/infrastructure/jobs/ingest.js"
+# Or locally against production DB
+DATABASE_URL="<neon-connection-string>" make prod-ingest
 ```
 
-### View logs
+### Backfill historical data
 
 ```bash
-fly logs
-fly logs --app tickerlab
+DATABASE_URL="<neon-connection-string>" make prod-backfill
 ```
 
 ### Connect to production database
 
 ```bash
-fly postgres connect -a tickerlab-db
+DATABASE_URL="<neon-connection-string>" make prod-db
+# or directly:
+psql "<neon-connection-string>"
 ```
 
-### Rollback
+### View logs
 
-```bash
-# List recent deployments
-fly releases
-
-# Rollback to previous release
-fly deploy --image <previous-image-ref>
-```
+Render dashboard → tickerlab → Logs. No CLI log access on free tier.
 
 ### URLs
 
-- Dashboard: https://tickerlab.fly.dev
-- Health: https://tickerlab.fly.dev/health
-- Readiness: https://tickerlab.fly.dev/ready
-- API docs: https://tickerlab.fly.dev/api/docs
-- Metrics: https://tickerlab.fly.dev/metrics
+- Dashboard: https://tickerlab.onrender.com
+- Health: https://tickerlab.onrender.com/health
+- Readiness: https://tickerlab.onrender.com/ready
+- API docs: https://tickerlab.onrender.com/api/docs
+- Metrics: https://tickerlab.onrender.com/metrics
+
+### Cold starts
+
+Render free tier spins down after 15 minutes of inactivity. First request after that takes ~30 seconds (cold start). This is expected for a personal experiment.
 
 ## Troubleshooting
 

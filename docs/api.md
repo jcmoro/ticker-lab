@@ -4,8 +4,9 @@
 
 The OpenAPI 3.1 spec lives at `apps/api/openapi.yaml`. This is the **source of truth** for all HTTP endpoints.
 
-**Interactive docs:** http://localhost:3000/api/docs (ReDoc)
-**Raw spec:** http://localhost:3000/api/openapi.yaml
+**Live:** https://tickerlab.onrender.com/api/docs (ReDoc)
+**Local:** http://localhost:3000/api/docs
+**Raw spec:** `/api/openapi.yaml`
 
 ## Generating Types
 

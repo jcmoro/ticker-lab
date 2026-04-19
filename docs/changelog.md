@@ -4,6 +4,25 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Phase 6: Migrate to Render + Neon
+
+**Summary:** Migrated from Fly.io (7-day trial) to permanently free hosting.
+
+**Infrastructure:**
+- App: Render free tier (native Node, auto-deploy from GitHub)
+- Database: Neon free tier (serverless Postgres, Frankfurt EU)
+- URL: https://tickerlab.onrender.com
+- Fly.io apps destroyed
+
+**Other:**
+- `render.yaml` for Render Blueprint
+- `entrypoint.sh` for migration + start
+- GitHub Actions ingest workflow runs directly against Neon (no SSH needed)
+- Makefile updated: fly-* commands replaced with prod-* commands
+- 17,536 historical rates migrated to Neon
+
+---
+
 ## 2026-04-19 — Phase 7: Historical Data & Charts
 
 **Summary:** Time series data with interactive Chart.js charts and date range selection.
