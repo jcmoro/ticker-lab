@@ -67,9 +67,11 @@ export function dashboardRoutes(deps: DashboardDeps) {
     );
 
     server.get('/converter', async (_request: FastifyRequest, reply: FastifyReply) => {
+      const goBaseUrl = process.env.GO_CONVERTER_URL ?? 'http://localhost:8080';
       return reply.viewAsync('pages/converter', {
         title: 'Currency Converter',
         currencies: getAllCurrencies(),
+        goBaseUrl,
       });
     });
   };

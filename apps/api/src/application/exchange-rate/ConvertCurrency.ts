@@ -7,6 +7,7 @@ export interface ConversionResult {
   rate: number;
   result: number;
   date: string;
+  engine: string;
 }
 
 export class ConvertCurrency {
@@ -21,6 +22,7 @@ export class ConvertCurrency {
         rate: 1,
         result: amount,
         date: new Date().toISOString().slice(0, 10),
+        engine: 'node',
       };
     }
 
@@ -39,6 +41,14 @@ export class ConvertCurrency {
     const rate = toRate / fromRate;
     const result = Math.round(amount * rate * 100) / 100;
 
-    return { from, to, amount, rate: Math.round(rate * 1_000_000) / 1_000_000, result, date };
+    return {
+      from,
+      to,
+      amount,
+      rate: Math.round(rate * 1_000_000) / 1_000_000,
+      result,
+      date,
+      engine: 'node',
+    };
   }
 }

@@ -23,6 +23,29 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Phase 9b: Go Converter Microservice
+
+**Summary:** Currency converter reimplemented as a standalone Go microservice. Both engines (Node + Go) coexist and can be compared side by side.
+
+**New service:**
+- `apps/converter-go/` — Go stdlib HTTP server + pgx Postgres driver
+- `GET /api/v1/go/convert?from=GBP&to=JPY&amount=1000` — same logic, Go runtime
+- CORS enabled for cross-origin calls from the Node frontend
+- Docker image: ~15MB (Alpine + static binary)
+
+**Frontend:**
+- Converter page now has Node.js / Go / Both toggle
+- "Both" mode shows results side by side with response times (ms)
+- Each response includes `"engine": "node"` or `"engine": "go"`
+
+**Other:**
+- `docker-compose.yml` updated with converter-go service
+- `docker/converter-go/Dockerfile` — multi-stage Go build
+- OpenAPI spec updated with `/api/v1/go/convert` endpoint
+- 32 tests (Node side unchanged)
+
+---
+
 ## 2026-04-19 — UI Polish: Light Theme & Currency Info
 
 **Summary:** Redesigned dashboard with light theme, country flags, and currency names.

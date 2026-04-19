@@ -183,6 +183,43 @@ paths:
                 result: 117.97
                 date: "2026-04-17"
 
+  /api/v1/go/convert:
+    get:
+      operationId: convertCurrencyGo
+      summary: Convert between currencies (Go engine)
+      description: Same conversion logic as `/api/v1/convert` but served by a standalone Go microservice. Useful for comparing runtimes.
+      tags:
+        - exchange-rates
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Source currency (ISO 4217)
+          schema:
+            type: string
+          example: EUR
+        - name: to
+          in: query
+          required: true
+          description: Target currency (ISO 4217)
+          schema:
+            type: string
+          example: USD
+        - name: amount
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 1
+          example: 100
+      responses:
+        "200":
+          description: Conversion result (includes engine field)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversionResponse"
+
   /api/v1/exchange-rates/history:
     get:
       operationId: getExchangeRateHistory

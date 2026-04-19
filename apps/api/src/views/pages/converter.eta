@@ -35,36 +35,75 @@
       </div>
     </div>
 
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+      <label style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 0.8rem;">
+        <input type="radio" name="engine" value="node" checked> Node.js
+      </label>
+      <label style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 0.8rem;">
+        <input type="radio" name="engine" value="go"> Go
+      </label>
+      <label style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 0.8rem;">
+        <input type="radio" name="engine" value="both"> Both
+      </label>
+    </div>
+
     <button type="submit" style="width: 100%; padding: 0.75rem; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
       Convert
     </button>
   </form>
 
-  <div id="result" style="display: none; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-top: 1rem; max-width: 500px;">
-    <p style="font-size: 0.875rem; color: #64748b;" id="resultFrom"></p>
-    <p style="font-size: 2rem; font-weight: 700; color: #0f172a;" id="resultTo"></p>
-    <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem;" id="resultRate"></p>
-  </div>
+  <div id="results" style="display: none; margin-top: 1rem; max-width: 500px;"></div>
 </section>
 
 <script>
+  var GO_URL = '<%= it.goBaseUrl %>';
+
   var form = document.getElementById('converterForm');
   form.addEventListener('submit', function(e) {
     e.preventDefault();
     var amount = document.getElementById('amount').value || 1;
     var from = document.getElementById('fromCurrency').value;
     var to = document.getElementById('toCurrency').value;
+    var engine = document.querySelector('input[name="engine"]:checked').value;
 
-    fetch('/api/v1/convert?from=' + from + '&to=' + to + '&amount=' + amount)
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.result !== undefined) {
-          document.getElementById('resultFrom').textContent = data.amount + ' ' + data.from;
-          document.getElementById('resultTo').textContent = data.result.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + data.to;
-          document.getElementById('resultRate').textContent = '1 ' + data.from + ' = ' + data.rate.toFixed(6) + ' ' + data.to + ' (ECB ' + data.date + ')';
-          document.getElementById('result').style.display = 'block';
-        }
-      });
+    var container = document.getElementById('results');
+    container.innerHTML = '';
+    container.style.display = 'block';
+
+    var engines = engine === 'both' ? ['node', 'go'] : [engine];
+    engines.forEach(function(eng) {
+      var url = eng === 'go'
+        ? GO_URL + '/api/v1/go/convert?from=' + from + '&to=' + to + '&amount=' + amount
+        : '/api/v1/convert?from=' + from + '&to=' + to + '&amount=' + amount;
+
+      var start = performance.now();
+      fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var ms = (performance.now() - start).toFixed(0);
+          if (data.result !== undefined) {
+            var card = document.createElement('div');
+            card.style.cssText = 'background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 0.75rem;';
+            var label = eng === 'go' ? 'Go' : 'Node.js';
+            var color = eng === 'go' ? '#10b981' : '#3b82f6';
+            card.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">'
+              + '<span style="font-size: 0.75rem; font-weight: 600; color: ' + color + '; text-transform: uppercase;">' + label + '</span>'
+              + '<span style="font-size: 0.75rem; color: #94a3b8;">' + ms + ' ms</span>'
+              + '</div>'
+              + '<p style="font-size: 0.875rem; color: #64748b;">' + data.amount + ' ' + data.from + '</p>'
+              + '<p style="font-size: 2rem; font-weight: 700; color: #0f172a;">'
+              + data.result.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + data.to + '</p>'
+              + '<p style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem;">1 ' + data.from + ' = ' + data.rate.toFixed(6) + ' ' + data.to + ' (ECB ' + data.date + ')</p>';
+            container.appendChild(card);
+          }
+        })
+        .catch(function(err) {
+          var card = document.createElement('div');
+          card.style.cssText = 'background: #fff; border: 1px solid #fca5a5; border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem;';
+          card.innerHTML = '<span style="font-size: 0.75rem; color: #ef4444;">' + (eng === 'go' ? 'Go' : 'Node.js') + ' — ' + err.message + '</span>';
+          container.appendChild(card);
+        });
+    });
   });
 
   function swapCurrencies() {

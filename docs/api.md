@@ -35,7 +35,8 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 | GET | `/api/v1/exchange-rates/latest` | Latest rates for a base currency (`?base=EUR`) |
 | GET | `/api/v1/exchange-rates/:date` | Rates for a specific date (`?base=EUR`) |
 | GET | `/api/v1/exchange-rates/history` | Time series (`?quote=USD&from=2025-01-01&to=2026-04-17`) |
-| GET | `/api/v1/convert` | Currency converter (`?from=GBP&to=JPY&amount=1000`) |
+| GET | `/api/v1/convert` | Currency converter — Node.js (`?from=GBP&to=JPY&amount=1000`) |
+| GET | `/api/v1/go/convert` | Currency converter — Go engine (same params, separate service) |
 
 ### SSR Pages
 
