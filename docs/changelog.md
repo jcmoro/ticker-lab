@@ -23,6 +23,17 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Automated Crypto Ingestion
+
+**Summary:** Crypto prices now ingested automatically via GitHub Actions cron.
+
+**Changes:**
+- `.github/workflows/ingest.yml` updated: two jobs (exchange-rates + crypto)
+- Crypto: daily at 08:00 UTC, exchange rates: Mon-Fri 16:30 UTC
+- Both jobs reference `environment: prod` for GitHub secrets
+
+---
+
 ## 2026-04-19 — Crypto Frontend Integration
 
 **Summary:** Integrated Go crypto microservice into the Node.js SSR dashboard.

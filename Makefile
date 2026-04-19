@@ -119,14 +119,17 @@ deploy: ## Trigger Render deploy (requires RENDER_DEPLOY_HOOK env var)
 
 # ─── Production (Neon + Render) ──────────────────────────────
 
+include .env.prod
+export
+
 prod-db: ## Connect to Neon Postgres
-	@psql "$$DATABASE_URL"
+	@psql "$(DATABASE_URL)"
 
 prod-ingest: ## Run daily ingestion against production DB
-	DATABASE_URL="$$DATABASE_URL" pnpm --filter @ticker-lab/api job:ingest
+	pnpm --filter @ticker-lab/api job:ingest
 
 prod-backfill: ## Backfill historical rates against production DB
-	DATABASE_URL="$$DATABASE_URL" pnpm --filter @ticker-lab/api job:backfill
+	pnpm --filter @ticker-lab/api job:backfill
 
 prod-crypto: ## Fetch crypto prices against production DB
-	DATABASE_URL="$$DATABASE_URL" go run ./apps/crypto-go ingest
+	cd apps/crypto-go && /usr/local/go/bin/go run . ingest
