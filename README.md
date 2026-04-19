@@ -8,14 +8,17 @@ Financial data dashboard that ingests public economic data daily and displays it
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Node.js 24 + Fastify 5 + TypeScript |
+| Backend (Node) | Node.js 24 + Fastify 5 + TypeScript |
+| Backend (Go) | Go 1.25 + stdlib + pgx |
 | Frontend | Fastify SSR (Eta templates) + Chart.js |
 | Database | PostgreSQL 16 + Drizzle ORM |
 | Contract | OpenAPI 3.1 (source of truth) |
-| Quality | Biome + Vitest (32 tests) |
+| Quality | Biome + Vitest (32 tests) + go test (9 tests) |
 | Infra | Docker (dev) + Render + Neon + GitHub Actions |
 
-**Live:** https://tickerlab.onrender.com
+**Live:**
+- Dashboard: https://tickerlab.onrender.com
+- Go converter: https://tickerlab-go.onrender.com
 
 ## Quick Start
 
@@ -43,8 +46,11 @@ curl http://localhost:3000/api/v1/exchange-rates/2026-04-17
 # Historical time series
 curl "http://localhost:3000/api/v1/exchange-rates/history?quote=USD&from=2025-01-01&to=2026-04-17"
 
-# Currency converter (cross-rates supported)
+# Currency converter — Node.js engine
 curl "http://localhost:3000/api/v1/convert?from=GBP&to=JPY&amount=1000"
+
+# Currency converter — Go engine
+curl "http://localhost:8080/api/v1/go/convert?from=GBP&to=JPY&amount=1000"
 
 # Metrics
 curl http://localhost:3000/metrics
@@ -68,7 +74,8 @@ make ci              # Run lint + typecheck + test
 make lint            # Biome linter
 make format          # Biome formatter
 make typecheck       # TypeScript checks
-make test            # All tests (32)
+make test            # Node tests (32)
+# Go tests: cd apps/converter-go && go test ./...
 
 # Database
 make db-migrate      # Run migrations
@@ -99,8 +106,12 @@ apps/api/src/
 │   └── jobs/         Ingestion + backfill scripts
 ├── views/            SSR templates (dashboard, rate detail, converter)
 └── main.ts           Composition root
+apps/converter-go/    Go microservice (currency converter)
+├── main.go           HTTP server + pgx Postgres
+├── main_test.go      9 tests
+└── Dockerfile        Multi-stage (~15MB image)
 packages/shared/      Shared types (generated from OpenAPI)
-docker/               Dockerfile + entrypoint
+docker/               Dockerfiles (api + converter-go)
 docs/                 Architecture, API, runbook, ADRs, roadmap
 ```
 
@@ -110,7 +121,7 @@ docs/                 Architecture, API, runbook, ADRs, roadmap
 |-----|-------------|
 | `/` | Dashboard — 30 currencies with flags, names, rates |
 | `/rates/:quote` | Detail — Chart.js chart with 30d/90d/180d/365d selector |
-| `/converter` | Currency converter with cross-rate support |
+| `/converter` | Currency converter — Node/Go/Both toggle with response times |
 | `/api/docs` | Interactive API documentation (ReDoc) |
 
 ## Documentation

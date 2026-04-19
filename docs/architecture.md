@@ -92,6 +92,29 @@ GET /
       → Eta renders HTML with ticker card grid
 ```
 
+## Go Converter Microservice
+
+A standalone Go service (`apps/converter-go/`) that reimplements the currency converter. Both engines coexist and serve the same OpenAPI contract.
+
+```
+┌──────────────────┐     ┌──────────────────┐
+│   Node (Fastify)  │     │   Go (stdlib)     │
+│  /api/v1/convert  │     │ /api/v1/go/convert│
+└────────┬─────────┘     └────────┬─────────┘
+         │                        │
+         └────────┬───────────────┘
+                  │
+           ┌──────┴──────┐
+           │  Neon Postgres │
+           │  (shared DB)   │
+           └──────────────┘
+```
+
+- **Same database:** both services read from the same `exchange_rates` table in Neon
+- **Same contract:** both return `ConversionResponse` with `engine` field (`"node"` or `"go"`)
+- **Independent deploy:** separate Render services, can scale independently
+- **Frontend toggle:** `/converter` page lets you choose Node/Go/Both and compare response times
+
 ## Dependency Injection
 
 Manual wiring in `main.ts` (composition root). No DI framework.
@@ -102,7 +125,9 @@ main.ts creates:
   → DrizzleExchangeRateRepository(db)
   → GetLatestRates(repository)
   → GetRatesByDate(repository)
-  → buildServer({ getLatestRates, getRatesByDate })
+  → GetRateHistory(repository)
+  → ConvertCurrency(repository)
+  → buildServer({ getLatestRates, getRatesByDate, getRateHistory, convertCurrency })
 ```
 
 Server dependencies use structural typing (interfaces with `execute` method), not concrete class references. This allows tests to provide stubs without importing implementation classes.
