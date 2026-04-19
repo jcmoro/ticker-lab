@@ -84,7 +84,7 @@ make db-seed         # Seed development data
 make job-ingest      # Fetch latest ECB rates
 make job-backfill    # Backfill historical exchange rates
 make job-crypto      # Fetch latest crypto prices from CoinGecko
-# Crypto backfill: make prod-crypto-backfill (365 days, ~3.5 min)
+make job-crypto-backfill # Backfill historical crypto prices (365 days, ~3.5 min)
 
 # Production
 make deploy          # Trigger Render deploy

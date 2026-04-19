@@ -81,6 +81,7 @@ describe('GET /crypto (crypto page)', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
+        ok: true,
         json: () =>
           Promise.resolve({
             date: '2026-04-17',
@@ -115,7 +116,7 @@ describe('GET /crypto (crypto page)', () => {
     const response = await server.inject({ method: 'GET', url: '/crypto' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.body).toContain('No crypto data available');
+    expect(response.body).toContain('Crypto service is waking up');
 
     await server.close();
   });
@@ -130,6 +131,7 @@ describe('GET /crypto/:id (crypto detail page)', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
+        ok: true,
         json: () =>
           Promise.resolve({
             prices: [

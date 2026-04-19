@@ -10,6 +10,20 @@ interface DashboardDeps {
   };
 }
 
+const RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 2000;
+
+async function fetchWithRetry(url: string): Promise<Response> {
+  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+    const res = await fetch(url);
+    if (res.ok) return res;
+    if (attempt < RETRY_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+  throw new Error(`Failed to fetch ${url} after ${RETRY_ATTEMPTS} attempts`);
+}
+
 function daysAgo(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -79,7 +93,7 @@ export function dashboardRoutes(deps: DashboardDeps) {
 
     server.get('/crypto', async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const res = await fetch(`${cryptoBaseUrl}/api/v1/crypto/latest`);
+        const res = await fetchWithRetry(`${cryptoBaseUrl}/api/v1/crypto/latest`);
         const data = (await res.json()) as { date: string; prices: CryptoPrice[] };
         return reply.viewAsync('pages/crypto', {
           title: 'Crypto',
@@ -103,8 +117,8 @@ export function dashboardRoutes(deps: DashboardDeps) {
 
         try {
           const [latestRes, historyRes] = await Promise.all([
-            fetch(`${cryptoBaseUrl}/api/v1/crypto/latest`),
-            fetch(`${cryptoBaseUrl}/api/v1/crypto/${coinId}/history?days=${days}`),
+            fetchWithRetry(`${cryptoBaseUrl}/api/v1/crypto/latest`),
+            fetchWithRetry(`${cryptoBaseUrl}/api/v1/crypto/${coinId}/history?days=${days}`),
           ]);
 
           const latest = (await latestRes.json()) as { prices: CryptoPrice[] };

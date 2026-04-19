@@ -1,4 +1,4 @@
-.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
+.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto-backfill docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
 
 .DEFAULT_GOAL := help
 
@@ -33,6 +33,7 @@ help: ## Show available targets
 	@echo "  \033[36mjob-ingest\033[0m         Fetch latest ECB exchange rates (local)"
 	@echo "  \033[36mjob-backfill\033[0m       Backfill historical exchange rates (local)"
 	@echo "  \033[36mjob-crypto\033[0m         Fetch latest crypto prices (local)"
+	@echo "  \033[36mjob-crypto-backfill\033[0m Backfill historical crypto prices (local)"
 	@echo ""
 	@echo "  \033[1mBuild & Deploy\033[0m"
 	@echo "  \033[36mbuild\033[0m              Build for production"
@@ -44,6 +45,7 @@ help: ## Show available targets
 	@echo "  \033[36mprod-ingest\033[0m        Run daily ingestion against production DB"
 	@echo "  \033[36mprod-backfill\033[0m      Backfill historical rates against production DB"
 	@echo "  \033[36mprod-crypto\033[0m        Fetch crypto prices against production DB"
+	@echo "  \033[36mprod-crypto-backfill\033[0m Backfill crypto history against production DB"
 	@echo ""
 
 # ─── Development ─────────────────────────────────────────────
@@ -118,6 +120,9 @@ job-backfill: ## Backfill historical rates (default: 2024-01-01 to today)
 
 job-crypto: ## Fetch latest crypto prices from CoinGecko
 	docker compose run --rm crypto-go ./crypto-go ingest
+
+job-crypto-backfill: ## Backfill historical crypto prices (default: 365 days)
+	docker compose run --rm crypto-go ./crypto-go backfill 365
 
 # ─── Build & Deploy ──────────────────────────────────────────
 
