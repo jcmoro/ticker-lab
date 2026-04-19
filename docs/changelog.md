@@ -4,6 +4,25 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Phase 5: Deployment
+
+**Summary:** Production-ready deployment to Fly.io with automated CI/CD and daily ingestion cron.
+
+**Infrastructure:**
+- `fly.toml` — Fly.io config (Madrid region, shared-cpu-1x, 256MB, health/readiness checks)
+- Production Dockerfile updated: includes migrations, OpenAPI spec, views
+- `release_command` runs DB migrations automatically on deploy
+- Migration script (`migrate.ts`) uses drizzle-orm programmatic migrate
+
+**CI/CD:**
+- `.github/workflows/deploy.yml` — auto-deploy on push to main (after CI passes)
+- `.github/workflows/ingest.yml` — daily ECB ingestion cron (Mon-Fri 16:30 UTC)
+
+**Docs:**
+- Runbook updated with full Fly.io setup, deploy, rollback, and production operations
+
+---
+
 ## 2026-04-19 — Phase 4: Observability
 
 **Summary:** Structured metrics, graceful shutdown, startup banner.

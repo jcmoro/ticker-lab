@@ -1,0 +1,27 @@
+name: Daily Ingestion
+
+on:
+  schedule:
+    # 16:30 UTC Mon-Fri (ECB publishes ~16:00 CET)
+    - cron: "30 16 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    name: Ingest ECB Exchange Rates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Run ingestion job
+        run: |
+          flyctl machine run \
+            --app tickerlab \
+            --region mad \
+            --vm-size shared-cpu-1x \
+            --vm-memory 256 \
+            docker/api/Dockerfile \
+            --build-target prod \
+            -- node dist/infrastructure/jobs/ingest.js
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

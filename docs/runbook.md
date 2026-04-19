@@ -105,6 +105,97 @@ curl http://localhost:3000/api/v1/exchange-rates/latest | jq
 
 Should return 29 currency rates with the latest ECB business day date.
 
+## Production (Fly.io)
+
+### First-time setup
+
+```bash
+# Install Fly CLI
+curl -L https://fly.io/install.sh | sh
+
+# Login
+fly auth login
+
+# Create the app
+fly launch --no-deploy
+
+# Create Postgres (free tier)
+fly postgres create --name tickerlab-db --region mad --vm-size shared-cpu-1x --volume-size 1
+
+# Attach Postgres (sets DATABASE_URL secret automatically)
+fly postgres attach tickerlab-db
+
+# Deploy
+fly deploy
+```
+
+### Deploy
+
+Deployments happen automatically on push to `main` via GitHub Actions. To deploy manually:
+
+```bash
+fly deploy
+```
+
+The `release_command` in `fly.toml` runs database migrations before the new version goes live.
+
+### Required secrets
+
+```bash
+# DATABASE_URL is set automatically by `fly postgres attach`
+# No other secrets needed (Frankfurter API has no key)
+```
+
+For GitHub Actions deployment, set the `FLY_API_TOKEN` secret in the repository:
+
+```bash
+fly tokens create deploy -x 999999h
+# Copy the token to GitHub → Settings → Secrets → FLY_API_TOKEN
+```
+
+### Daily ingestion
+
+ECB exchange rates are ingested automatically Mon-Fri at 16:30 UTC via GitHub Actions cron (`.github/workflows/ingest.yml`). To trigger manually:
+
+```bash
+# From GitHub Actions
+gh workflow run "Daily Ingestion"
+
+# Or via Fly SSH
+fly ssh console -C "node dist/infrastructure/jobs/ingest.js"
+```
+
+### View logs
+
+```bash
+fly logs
+fly logs --app tickerlab
+```
+
+### Connect to production database
+
+```bash
+fly postgres connect -a tickerlab-db
+```
+
+### Rollback
+
+```bash
+# List recent deployments
+fly releases
+
+# Rollback to previous release
+fly deploy --image <previous-image-ref>
+```
+
+### URLs
+
+- Dashboard: https://tickerlab.fly.dev
+- Health: https://tickerlab.fly.dev/health
+- Readiness: https://tickerlab.fly.dev/ready
+- API docs: https://tickerlab.fly.dev/api/docs
+- Metrics: https://tickerlab.fly.dev/metrics
+
 ## Troubleshooting
 
 ### Containers won't start
