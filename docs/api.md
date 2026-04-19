@@ -38,6 +38,16 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 | GET | `/api/v1/convert` | Currency converter — Node.js (`?from=GBP&to=JPY&amount=1000`) |
 | GET | `/api/v1/go/convert` | Currency converter — Go engine (same params, separate service) |
 
+### Crypto (Go service, port 8090)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/crypto/latest` | Top 20 crypto prices (EUR + USD, sorted by market cap) |
+| GET | `/api/v1/crypto/{id}/history` | Price history for a coin (`?days=90`) |
+| GET | `/health` | Go crypto service health check |
+
+**Supported coins:** BTC, ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, DOT, POL, LINK, UNI, ATOM, LTC, FIL, APT, ARB, OP, NEAR, ICP
+
 ### SSR Pages
 
 | Method | Path | Description |
@@ -91,6 +101,41 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 
 Cross-rates (e.g., GBP to JPY) are calculated via EUR: `rate = EUR/JPY / EUR/GBP`.
 
+### Crypto latest
+
+```json
+{
+  "date": "2026-04-19",
+  "count": 20,
+  "prices": [
+    {
+      "coin_id": "bitcoin",
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "price_eur": 63587,
+      "price_usd": 74658,
+      "market_cap_eur": 1272774376670.26,
+      "change_24h": -1.0779,
+      "date": "2026-04-19"
+    }
+  ]
+}
+```
+
+### Crypto history
+
+```json
+{
+  "coin_id": "bitcoin",
+  "days": 90,
+  "count": 90,
+  "prices": [
+    { "date": "2026-01-20", "price": 58234.12 },
+    { "date": "2026-01-21", "price": 59123.45 }
+  ]
+}
+```
+
 ## Error Format
 
 Errors follow RFC 9457 ProblemDetails (`application/problem+json`):
@@ -105,11 +150,14 @@ Errors follow RFC 9457 ProblemDetails (`application/problem+json`):
 }
 ```
 
-## Data Source
+## Data Sources
 
-Exchange rates come from the [Frankfurter API](https://frankfurter.dev), which provides ECB (European Central Bank) reference rates. Rates are updated once per business day (no weekends/holidays). 30 currencies supported (EUR + 29 quote currencies).
+| Source | Data | Update frequency |
+|--------|------|-----------------|
+| [Frankfurter API](https://frankfurter.dev) | ECB exchange rates (30 currencies) | Daily (business days) |
+| [CoinGecko API](https://www.coingecko.com/en/api) | Crypto prices (top 20 coins) | On demand (free tier, no API key) |
 
-Historical data backfilled from 2024-01-01 (~17,500 rate records).
+Historical exchange rates backfilled from 2024-01-01 (~17,500 records).
 
 ## Conventions
 

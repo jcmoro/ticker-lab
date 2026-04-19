@@ -84,6 +84,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Convert between currencies
+         * @description Converts an amount from one currency to another using the latest ECB rates. Supports cross-rates via EUR (e.g., GBP to JPY).
+         */
+        get: operations["convertCurrency"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/go/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Convert between currencies (Go engine)
+         * @description Same conversion logic as `/api/v1/convert` but served by a standalone Go microservice. Useful for comparing runtimes.
+         */
+        get: operations["convertCurrencyGo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/crypto/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get latest crypto prices
+         * @description Returns current prices for the top 20 cryptocurrencies in EUR and USD. Served by the Go crypto microservice.
+         */
+        get: operations["getCryptoLatest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/crypto/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get crypto price history
+         * @description Returns historical prices for a cryptocurrency. Served by the Go crypto microservice.
+         */
+        get: operations["getCryptoHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exchange-rates/history": {
         parameters: {
             query?: never;
@@ -125,6 +205,43 @@ export interface components {
              * @example 2026-04-19T12:00:00.000Z
              */
             timestamp: string;
+        };
+        /**
+         * ConversionResponse
+         * @description Result of a currency conversion
+         */
+        ConversionResponse: {
+            /**
+             * @description Source currency code
+             * @example EUR
+             */
+            from: string;
+            /**
+             * @description Target currency code
+             * @example USD
+             */
+            to: string;
+            /**
+             * @description Original amount
+             * @example 100
+             */
+            amount: number;
+            /**
+             * @description Exchange rate applied (from → to)
+             * @example 1.1797
+             */
+            rate: number;
+            /**
+             * @description Converted amount
+             * @example 117.97
+             */
+            result: number;
+            /**
+             * Format: date
+             * @description Date of the rates used
+             * @example 2026-04-17
+             */
+            date: string;
         };
         /**
          * HistoryResponse
@@ -234,6 +351,110 @@ export interface components {
              * @example 1.1358
              */
             rate: number;
+        };
+        /**
+         * CryptoLatestResponse
+         * @description Latest prices for top cryptocurrencies
+         */
+        CryptoLatestResponse: {
+            /**
+             * Format: date
+             * @description Date of the prices
+             * @example 2026-04-19
+             */
+            date: string;
+            /**
+             * @description Number of coins returned
+             * @example 20
+             */
+            count: number;
+            prices: components["schemas"]["CryptoPrice"][];
+        };
+        /**
+         * CryptoPrice
+         * @description Price data for a cryptocurrency
+         */
+        CryptoPrice: {
+            /**
+             * @description CoinGecko coin identifier
+             * @example bitcoin
+             */
+            coin_id: string;
+            /**
+             * @description Ticker symbol
+             * @example BTC
+             */
+            symbol: string;
+            /**
+             * @description Full coin name
+             * @example Bitcoin
+             */
+            name: string;
+            /**
+             * @description Price in EUR
+             * @example 63587
+             */
+            price_eur: number;
+            /**
+             * @description Price in USD
+             * @example 74658
+             */
+            price_usd: number;
+            /**
+             * @description Market capitalization in EUR
+             * @example 1272774376670.26
+             */
+            market_cap_eur?: number;
+            /**
+             * @description 24h price change percentage
+             * @example -1.0779
+             */
+            change_24h?: number;
+            /**
+             * Format: date
+             * @description Date of the price
+             * @example 2026-04-19
+             */
+            date: string;
+        };
+        /**
+         * CryptoHistoryResponse
+         * @description Historical prices for a cryptocurrency
+         */
+        CryptoHistoryResponse: {
+            /**
+             * @description CoinGecko coin identifier
+             * @example bitcoin
+             */
+            coin_id: string;
+            /**
+             * @description Number of days requested
+             * @example 90
+             */
+            days: number;
+            /**
+             * @description Number of data points returned
+             * @example 90
+             */
+            count: number;
+            prices: components["schemas"]["CryptoHistoryPoint"][];
+        };
+        /**
+         * CryptoHistoryPoint
+         * @description A single data point in a crypto price time series
+         */
+        CryptoHistoryPoint: {
+            /**
+             * Format: date
+             * @description Date of the price
+             * @example 2026-01-02
+             */
+            date: string;
+            /**
+             * @description Price in EUR
+             * @example 58234.12
+             */
+            price: number;
         };
         /**
          * ProblemDetails
@@ -443,6 +664,155 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    convertCurrency: {
+        parameters: {
+            query: {
+                /**
+                 * @description Source currency (ISO 4217)
+                 * @example EUR
+                 */
+                from: string;
+                /**
+                 * @description Target currency (ISO 4217)
+                 * @example USD
+                 */
+                to: string;
+                /**
+                 * @description Amount to convert. Defaults to 1.
+                 * @example 100
+                 */
+                amount?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversion result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "from": "EUR",
+                     *       "to": "USD",
+                     *       "amount": 100,
+                     *       "rate": 1.1797,
+                     *       "result": 117.97,
+                     *       "date": "2026-04-17"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ConversionResponse"];
+                };
+            };
+        };
+    };
+    convertCurrencyGo: {
+        parameters: {
+            query: {
+                /**
+                 * @description Source currency (ISO 4217)
+                 * @example EUR
+                 */
+                from: string;
+                /**
+                 * @description Target currency (ISO 4217)
+                 * @example USD
+                 */
+                to: string;
+                /** @example 100 */
+                amount?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversion result (includes engine field) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversionResponse"];
+                };
+            };
+        };
+    };
+    getCryptoLatest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest crypto prices sorted by market cap */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "date": "2026-04-19",
+                     *       "count": 20,
+                     *       "prices": [
+                     *         {
+                     *           "coin_id": "bitcoin",
+                     *           "symbol": "BTC",
+                     *           "name": "Bitcoin",
+                     *           "price_eur": 63587,
+                     *           "price_usd": 74658,
+                     *           "market_cap_eur": 1272774376670.26,
+                     *           "change_24h": -1.0779,
+                     *           "date": "2026-04-19"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CryptoLatestResponse"];
+                };
+            };
+        };
+    };
+    getCryptoHistory: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Number of days of history. Defaults to 90.
+                 * @example 365
+                 */
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description CoinGecko coin ID (e.g., bitcoin, ethereum, solana)
+                 * @example bitcoin
+                 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Crypto price history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CryptoHistoryResponse"];
                 };
             };
         };

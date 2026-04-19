@@ -1,24 +1,25 @@
 # Ticker Lab
 
-Financial data dashboard that ingests public economic data daily and displays it as a ticker-style dashboard.
+Financial data dashboard that ingests public economic data daily and displays it as a ticker-style dashboard. Polyglot architecture experiment with Node.js and Go microservices.
 
-**Current scope:** ECB exchange rates (30 currencies) via [Frankfurter API](https://frankfurter.dev). Historical data from 2024, interactive charts, and currency converter.
+**Current scope:** ECB exchange rates (30 currencies) + crypto prices (top 20) via Frankfurter and CoinGecko APIs. Historical data, interactive charts, and currency converter.
 
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Backend (Node) | Node.js 24 + Fastify 5 + TypeScript |
-| Backend (Go) | Go 1.25 + stdlib + pgx |
+| Backend (Go) | Go 1.25 + stdlib + pgx (converter + crypto) |
 | Frontend | Fastify SSR (Eta templates) + Chart.js |
 | Database | PostgreSQL 16 + Drizzle ORM |
 | Contract | OpenAPI 3.1 (source of truth) |
-| Quality | Biome + Vitest (32 tests) + go test (9 tests) |
+| Quality | Biome + Vitest (32 tests) + go test (15 tests) = **47 tests** |
 | Infra | Docker (dev) + Render + Neon + GitHub Actions |
 
 **Live:**
 - Dashboard: https://tickerlab.onrender.com
 - Go converter: https://tickerlab-go.onrender.com
+- Go crypto: https://tickerlab-crypto.onrender.com (when deployed)
 
 ## Quick Start
 
@@ -27,32 +28,28 @@ make setup        # Build containers, install dependencies
 make db-migrate   # Create database tables
 make job-ingest   # Fetch latest exchange rates from ECB
 make job-backfill # Backfill historical rates (2024-01-01 to today)
-make dev          # Start development (http://localhost:3000)
+make dev          # Start all services (Node :3000, Go converter :8080, Go crypto :8090)
 ```
 
 ## API
 
 ```bash
-# Health / readiness
-curl http://localhost:3000/health
-curl http://localhost:3000/ready
-
-# Latest exchange rates
+# ─── Exchange Rates (Node) ───────────────────────────────────
 curl http://localhost:3000/api/v1/exchange-rates/latest
-
-# Rates for a specific date
 curl http://localhost:3000/api/v1/exchange-rates/2026-04-17
-
-# Historical time series
 curl "http://localhost:3000/api/v1/exchange-rates/history?quote=USD&from=2025-01-01&to=2026-04-17"
 
-# Currency converter — Node.js engine
+# ─── Currency Converter (Node + Go) ─────────────────────────
 curl "http://localhost:3000/api/v1/convert?from=GBP&to=JPY&amount=1000"
-
-# Currency converter — Go engine
 curl "http://localhost:8080/api/v1/go/convert?from=GBP&to=JPY&amount=1000"
 
-# Metrics
+# ─── Crypto (Go) ────────────────────────────────────────────
+curl http://localhost:8090/api/v1/crypto/latest
+curl "http://localhost:8090/api/v1/crypto/bitcoin/history?days=90"
+
+# ─── System ──────────────────────────────────────────────────
+curl http://localhost:3000/health
+curl http://localhost:3000/ready
 curl http://localhost:3000/metrics
 ```
 
@@ -65,64 +62,77 @@ make help            # Show all available targets
 
 # Development
 make setup           # Build containers, install dependencies
-make dev             # Start development environment
+make dev             # Start all services (Node + Go converter + Go crypto + Postgres)
 make down            # Stop containers
 make clean           # Remove containers, volumes, node_modules
 
 # Quality
-make ci              # Run lint + typecheck + test
+make ci              # Run lint + typecheck + test (Node)
 make lint            # Biome linter
 make format          # Biome formatter
 make typecheck       # TypeScript checks
 make test            # Node tests (32)
-# Go tests: cd apps/converter-go && go test ./...
+# Go tests:
+#   cd apps/converter-go && go test ./...   (9 tests)
+#   cd apps/crypto-go && go test ./...      (6 tests)
 
 # Database
-make db-migrate      # Run migrations
+make db-migrate      # Run Drizzle migrations (exchange_rates)
 make db-seed         # Seed development data
 
 # Data
 make job-ingest      # Fetch latest ECB rates
-make job-backfill    # Backfill historical rates
+make job-backfill    # Backfill historical exchange rates
 
 # Production
 make deploy          # Trigger Render deploy
 make prod-db         # Connect to Neon Postgres
-make prod-ingest     # Run ingestion against production
-make prod-backfill   # Backfill against production
+make prod-ingest     # Run ECB ingestion against production
+make prod-backfill   # Backfill exchange rates against production
 ```
+
+## Services
+
+| Service | Port (dev) | Language | Data source |
+|---------|-----------|----------|-------------|
+| `api` | 3000 | Node.js | Frankfurter (ECB) |
+| `converter-go` | 8080 | Go | Shared DB |
+| `crypto-go` | 8090 | Go | CoinGecko |
+| `db` | 5432 | Postgres | — |
 
 ## Project Structure
 
 ```
-apps/api/src/
-├── domain/           Entities, value objects, ports (ExchangeRate, errors)
-├── application/      Use cases (IngestDailyRates, GetLatestRates, GetRatesByDate,
-│                                GetRateHistory, ConvertCurrency)
-├── infrastructure/
-│   ├── http/         Fastify server, routes, error handler, metrics
-│   ├── persistence/  Drizzle schema, repository, migrations
-│   ├── providers/    FrankfurterClient (ECB data)
-│   └── jobs/         Ingestion + backfill scripts
-├── views/            SSR templates (dashboard, rate detail, converter)
-└── main.ts           Composition root
-apps/converter-go/    Go microservice (currency converter)
-├── main.go           HTTP server + pgx Postgres
-├── main_test.go      9 tests
-└── Dockerfile        Multi-stage (~15MB image)
-packages/shared/      Shared types (generated from OpenAPI)
-docker/               Dockerfiles (api + converter-go)
-docs/                 Architecture, API, runbook, ADRs, roadmap
+apps/
+├── api/src/                  Node.js — exchange rates + dashboard + converter
+│   ├── domain/               Entities, value objects, ports
+│   ├── application/          Use cases (Ingest, GetLatest, GetHistory, Convert...)
+│   ├── infrastructure/       Fastify, Drizzle, Frankfurter, jobs
+│   ├── views/                SSR templates (dashboard, rate detail, converter)
+│   └── main.ts               Composition root
+├── converter-go/             Go — currency converter microservice
+│   ├── main.go               HTTP server + pgx + cross-rate logic
+│   └── main_test.go          9 tests
+├── crypto-go/                Go — crypto prices microservice
+│   ├── main.go               HTTP server + routing + ingestion CLI
+│   ├── coingecko.go          CoinGecko API client
+│   ├── repository.go         Postgres repository (auto-migrate)
+│   ├── handlers.go           HTTP handlers
+│   ├── models.go             Types + top 20 coins config
+│   └── main_test.go          6 tests
+packages/shared/              Shared types (generated from OpenAPI)
+docker/                       Dockerfiles (api, converter-go, crypto-go)
+docs/                         Architecture, API, runbook, ADRs, roadmap
 ```
 
 ## Pages
 
-| URL | Description |
-|-----|-------------|
-| `/` | Dashboard — 30 currencies with flags, names, rates |
-| `/rates/:quote` | Detail — Chart.js chart with 30d/90d/180d/365d selector |
-| `/converter` | Currency converter — Node/Go/Both toggle with response times |
-| `/api/docs` | Interactive API documentation (ReDoc) |
+| URL | Service | Description |
+|-----|---------|-------------|
+| `/` | Node | Dashboard — 30 currencies with flags, names, rates |
+| `/rates/:quote` | Node | Detail — Chart.js chart with 30d/90d/180d/365d selector |
+| `/converter` | Node | Currency converter — Node/Go/Both toggle with response times |
+| `/api/docs` | Node | Interactive API documentation (ReDoc) |
 
 ## Documentation
 

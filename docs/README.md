@@ -6,8 +6,8 @@ Ticker Lab project documentation.
 
 | Document | Description |
 |---|---|
-| [architecture.md](architecture.md) | Hexagonal architecture, layers, data flow |
-| [api.md](api.md) | REST API endpoints and conventions |
+| [architecture.md](architecture.md) | Hexagonal architecture, polyglot services, data flow |
+| [api.md](api.md) | REST API endpoints (Node + Go), response formats, data sources |
 | [runbook.md](runbook.md) | Local dev, operations, troubleshooting |
 | [changelog.md](changelog.md) | Reverse-chronological change log |
 | [future-providers.md](future-providers.md) | Roadmap of data providers to integrate |

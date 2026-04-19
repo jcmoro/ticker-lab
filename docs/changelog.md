@@ -23,6 +23,27 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Phase 8: Crypto (CoinGecko, Go)
+
+**Summary:** Second bounded context — top 20 crypto prices from CoinGecko, implemented as a standalone Go microservice.
+
+**New service:** `apps/crypto-go/`
+- `GET /api/v1/crypto/latest` — all 20 crypto prices (EUR + USD)
+- `GET /api/v1/crypto/{id}/history?days=90` — price history for a coin
+- `GET /health` — health check
+- `./crypto-go ingest` — fetch prices from CoinGecko and save to DB
+
+**Coins:** BTC, ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, DOT, POL, LINK, UNI, ATOM, LTC, FIL, APT, ARB, OP, NEAR, ICP
+
+**Other:**
+- Auto-creates `crypto_prices` table on startup (independent of Drizzle migrations)
+- CoinGecko free tier (no API key)
+- 6 Go tests (health, latest, history, CORS, save+find)
+- Docker: `docker/crypto-go/Dockerfile` (~15MB image)
+- docker-compose: crypto-go service on port 8090
+
+---
+
 ## 2026-04-19 — Phase 9b: Go Converter Microservice
 
 **Summary:** Currency converter reimplemented as a standalone Go microservice. Both engines (Node + Go) coexist and can be compared side by side.

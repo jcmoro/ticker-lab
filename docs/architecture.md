@@ -57,8 +57,10 @@ Adapters that implement domain ports: HTTP server, database repositories, extern
 Eta templates rendered server-side by Fastify. Thin presentation layer — no business logic. Consumes API responses only.
 
 **Current contents:**
-- `layouts/main.eta` — base HTML layout (dark theme, header, main wrapper)
-- `pages/dashboard.eta` — ticker card grid displaying exchange rates
+- `layouts/main.eta` — base HTML layout (light theme, nav bar, Inter font)
+- `pages/dashboard.eta` — ticker card grid with flags and currency names
+- `pages/rate-detail.eta` — Chart.js chart with period selector
+- `pages/converter.eta` — currency converter with Node/Go toggle
 
 ## Data Flow
 
@@ -92,28 +94,43 @@ GET /
       → Eta renders HTML with ticker card grid
 ```
 
-## Go Converter Microservice
+## Go Microservices
 
-A standalone Go service (`apps/converter-go/`) that reimplements the currency converter. Both engines coexist and serve the same OpenAPI contract.
+Two standalone Go services share the same Neon Postgres database with the Node.js monolith.
 
 ```
-┌──────────────────┐     ┌──────────────────┐
-│   Node (Fastify)  │     │   Go (stdlib)     │
-│  /api/v1/convert  │     │ /api/v1/go/convert│
-└────────┬─────────┘     └────────┬─────────┘
-         │                        │
-         └────────┬───────────────┘
-                  │
-           ┌──────┴──────┐
-           │  Neon Postgres │
-           │  (shared DB)   │
-           └──────────────┘
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│   Node (Fastify)  │  │ Go (converter)   │  │  Go (crypto)     │
+│   :3000           │  │   :8080          │  │   :8090          │
+│ exchange rates    │  │ /api/v1/go/      │  │ /api/v1/crypto/  │
+│ converter (node)  │  │   convert        │  │   latest         │
+│ dashboard SSR     │  │                  │  │   {id}/history   │
+└────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
+         │                     │                      │
+         └─────────────┬───────┴──────────────────────┘
+                       │
+                ┌──────┴───────┐
+                │ Neon Postgres │
+                │ (shared DB)   │
+                └──────────────┘
 ```
 
-- **Same database:** both services read from the same `exchange_rates` table in Neon
-- **Same contract:** both return `ConversionResponse` with `engine` field (`"node"` or `"go"`)
-- **Independent deploy:** separate Render services, can scale independently
-- **Frontend toggle:** `/converter` page lets you choose Node/Go/Both and compare response times
+### Converter Go (`apps/converter-go/`)
+- Reimplements currency converter in Go
+- Same logic, same contract (`ConversionResponse` with `engine` field)
+- Frontend toggle lets you compare Node vs Go response times
+
+### Crypto Go (`apps/crypto-go/`)
+- Second bounded context: crypto prices from CoinGecko
+- Own table (`crypto_prices`), auto-migrated on startup
+- Ingestion via CLI: `./crypto-go ingest`
+- Top 20 coins: BTC, ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, DOT, POL, LINK, UNI, ATOM, LTC, FIL, APT, ARB, OP, NEAR, ICP
+
+### Polyglot principles
+- **Shared database:** all services read/write the same Neon Postgres
+- **Independent deploy:** each service is a separate Render instance
+- **Same OpenAPI spec:** all endpoints documented in one `openapi.yaml`
+- **Independent lifecycle:** Go services auto-migrate their own tables
 
 ## Dependency Injection
 

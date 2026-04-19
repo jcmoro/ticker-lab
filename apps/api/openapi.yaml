@@ -2,10 +2,10 @@ openapi: 3.1.0
 info:
   title: Ticker Lab API
   description: |
-    Financial data dashboard API. Ingests ECB exchange rates daily via Frankfurter
-    and serves them through a REST interface. Part of the Ticker Lab experiment
-    for aggregating public financial data.
-  version: 0.6.0
+    Financial data dashboard API. Polyglot architecture experiment with Node.js and Go
+    microservices. Ingests ECB exchange rates and crypto prices from public APIs.
+    Exchange rates served by Node.js (Fastify), crypto and converter by Go (stdlib).
+  version: 0.7.0
   contact:
     name: Ticker Lab
   license:
@@ -13,13 +13,19 @@ info:
 
 servers:
   - url: http://localhost:3000
-    description: Local development
+    description: Local development (Node.js)
+  - url: http://localhost:8080
+    description: Local development (Go converter)
+  - url: http://localhost:8090
+    description: Local development (Go crypto)
 
 tags:
   - name: system
     description: Health and operational endpoints
   - name: exchange-rates
-    description: ECB exchange rate data via Frankfurter
+    description: ECB exchange rate data via Frankfurter (Node.js)
+  - name: crypto
+    description: Crypto prices via CoinGecko (Go)
 
 paths:
   /health:
@@ -219,6 +225,64 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConversionResponse"
+
+  /api/v1/crypto/latest:
+    get:
+      operationId: getCryptoLatest
+      summary: Get latest crypto prices
+      description: Returns current prices for the top 20 cryptocurrencies in EUR and USD. Served by the Go crypto microservice.
+      tags:
+        - crypto
+      responses:
+        "200":
+          description: Latest crypto prices sorted by market cap
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptoLatestResponse"
+              example:
+                date: "2026-04-19"
+                count: 20
+                prices:
+                  - coin_id: bitcoin
+                    symbol: BTC
+                    name: Bitcoin
+                    price_eur: 63587
+                    price_usd: 74658
+                    market_cap_eur: 1272774376670.26
+                    change_24h: -1.0779
+                    date: "2026-04-19"
+
+  /api/v1/crypto/{id}/history:
+    get:
+      operationId: getCryptoHistory
+      summary: Get crypto price history
+      description: Returns historical prices for a cryptocurrency. Served by the Go crypto microservice.
+      tags:
+        - crypto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: CoinGecko coin ID (e.g., bitcoin, ethereum, solana)
+          schema:
+            type: string
+          example: bitcoin
+        - name: days
+          in: query
+          required: false
+          description: Number of days of history. Defaults to 90.
+          schema:
+            type: integer
+            default: 90
+          example: 365
+      responses:
+        "200":
+          description: Crypto price history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptoHistoryResponse"
 
   /api/v1/exchange-rates/history:
     get:
@@ -473,6 +537,120 @@ components:
           type: number
           description: Exchange rate relative to the base currency
           example: 1.1358
+
+    CryptoLatestResponse:
+      title: CryptoLatestResponse
+      description: Latest prices for top cryptocurrencies
+      type: object
+      required:
+        - date
+        - count
+        - prices
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date of the prices
+          example: "2026-04-19"
+        count:
+          type: integer
+          description: Number of coins returned
+          example: 20
+        prices:
+          type: array
+          items:
+            $ref: "#/components/schemas/CryptoPrice"
+
+    CryptoPrice:
+      title: CryptoPrice
+      description: Price data for a cryptocurrency
+      type: object
+      required:
+        - coin_id
+        - symbol
+        - name
+        - price_eur
+        - price_usd
+        - date
+      properties:
+        coin_id:
+          type: string
+          description: CoinGecko coin identifier
+          example: bitcoin
+        symbol:
+          type: string
+          description: Ticker symbol
+          example: BTC
+        name:
+          type: string
+          description: Full coin name
+          example: Bitcoin
+        price_eur:
+          type: number
+          description: Price in EUR
+          example: 63587
+        price_usd:
+          type: number
+          description: Price in USD
+          example: 74658
+        market_cap_eur:
+          type: number
+          description: Market capitalization in EUR
+          example: 1272774376670.26
+        change_24h:
+          type: number
+          description: 24h price change percentage
+          example: -1.0779
+        date:
+          type: string
+          format: date
+          description: Date of the price
+          example: "2026-04-19"
+
+    CryptoHistoryResponse:
+      title: CryptoHistoryResponse
+      description: Historical prices for a cryptocurrency
+      type: object
+      required:
+        - coin_id
+        - days
+        - count
+        - prices
+      properties:
+        coin_id:
+          type: string
+          description: CoinGecko coin identifier
+          example: bitcoin
+        days:
+          type: integer
+          description: Number of days requested
+          example: 90
+        count:
+          type: integer
+          description: Number of data points returned
+          example: 90
+        prices:
+          type: array
+          items:
+            $ref: "#/components/schemas/CryptoHistoryPoint"
+
+    CryptoHistoryPoint:
+      title: CryptoHistoryPoint
+      description: A single data point in a crypto price time series
+      type: object
+      required:
+        - date
+        - price
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date of the price
+          example: "2026-01-02"
+        price:
+          type: number
+          description: Price in EUR
+          example: 58234.12
 
     ProblemDetails:
       title: ProblemDetails
