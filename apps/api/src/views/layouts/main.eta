@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= it.title %> — Ticker Lab</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    header {
+      border-bottom: 1px solid #1e293b;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    header span { color: #64748b; font-size: 0.875rem; }
+    main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ticker Lab</h1>
+    <span>Exchange Rates Dashboard</span>
+  </header>
+  <main>
+    <%~ it.body %>
+  </main>
+</body>
+</html>

@@ -289,6 +289,90 @@ Work is not complete until all gates pass.
 
 ---
 
+## Documentation Standards (based on DR_0012)
+
+### General Principles
+
+* **Spec as source of truth:** OpenAPI YAML is the contract. Code, types, and documentation derive from it — never the other way around.
+* **AI-consumable:** all fields must have non-trivial `description` and `examples`. Descriptions must include domain context, not just restate the field name. This applies to OpenAPI specs, JSON Schemas, and database documentation.
+* **README.md mandatory at every `docs/` subdirectory.** Each README serves as index and context for its folder.
+* **`docs/changelog.md` mandatory.** Reverse chronological. Updated when: adding/modifying/removing an endpoint, changing a request/response schema, changing database schema. Each entry: date, title, summary, affected endpoints, schema changes.
+
+### Documentation Structure
+
+```
+docs/
+├── README.md                  # Project overview and doc index
+├── changelog.md               # Reverse-chronological change log
+├── architecture.md            # Architecture overview and diagrams
+├── api.md                     # API navigation guide
+├── specs/
+│   └── openapi/
+│       └── v1/openapi.yaml    # Versioned OpenAPI spec (or root openapi.yaml)
+│   └── schemas/               # JSON Schemas (requests/, responses/, shared/)
+├── database/
+│   └── schema.md              # ER diagram, tables, JSONB schemas
+│   └── dependency-map.md      # Service dependencies (DBs, APIs, brokers)
+├── decisions/                 # ADRs
+│   └── ADR-NNN-short-desc.md
+├── operations/
+│   ├── runbook.md             # Oncall/SRE procedures
+│   ├── troubleshooting.md     # Resolved problems knowledge base
+│   └── development.md         # Local dev setup guide
+├── future-providers.md
+└── future-features.md
+```
+
+### OpenAPI Spec Rules
+
+* **Format:** YAML only (not JSON — more readable, allows comments)
+* **Version:** OpenAPI 3.1.0
+* **Mandatory `info` fields:** `title`, `version`, `description` (must include domain context and service purpose), `contact`
+* **Mandatory per endpoint:** `summary`, `description` (with business context), `operationId` (camelCase), `tags` (at least one domain tag), all `parameters` with description + example + schema, `requestBody` with description and complete example, all possible `responses` (2xx, 4xx, 5xx) with examples
+* **Mandatory per schema:** `title`, `description`, `required` list, every property with `description`, `type`, `example`, and constraints (`format`, `enum`, `minLength`, `maxLength`, `minimum`, `maximum`) when applicable
+* **Error format:** RFC 9457 `ProblemDetails` (`application/problem+json`) with fields: `type` (URI), `title`, `status`, `detail`, `code` (SCREAMING_SNAKE_CASE)
+
+### JSON Schema Rules
+
+* If data crosses a boundary (network, process, JSONB field), it must have a JSON Schema
+* Every schema must have: `$schema`, `$id`, `title`, `description`
+* Every property must have: `description`, `examples`
+* Explicit `required` — never assume all fields are mandatory
+* Schemas in `shared/` are reusable via `$ref`
+
+### ADR Rules
+
+* Path: `docs/decisions/ADR-NNN-short-description.md`
+* NNN: sequential (001, 002...), description: kebab-case, max 5 words
+* **Required fields:** Status (Proposed/Accepted/Deprecated/Superseded), Date, Context, Decision, Alternatives Considered (table), Consequences (positive/negative)
+* **Write an ADR when:** choosing tech stack, choosing architecture patterns, making infrastructure decisions, deviating from established conventions
+* Maintain an index in `docs/decisions/README.md`
+
+### Operational Documentation
+
+* **Runbook** (`docs/operations/runbook.md`): oriented to incident response. Incidents coded as INC-NNN with: symptoms, diagnosis, common causes (table), resolution (numbered steps). Commands must be copy-paste ready. Always include rollback as last option.
+* **Troubleshooting** (`docs/operations/troubleshooting.md`): knowledge base of resolved problems. Each entry coded as PROB-NNN with: date, severity, symptoms, root cause (mandatory — "restarted and it worked" is insufficient), applied solution, prevention (mandatory). Reverse chronological.
+* **Development** (`docs/operations/development.md`): local setup guide.
+
+### Database Documentation
+
+* Document: ER diagram (Mermaid preferred), table list with descriptions, key fields (PK, FK, indexes), JSONB fields linking to their JSON Schema
+* Every JSONB field without a linked schema is a violation
+* Maintain a dependency map: databases, external APIs consumed, services depended on
+
+### Self-Verification (Documentation)
+
+When delivering changes that affect documentation, verify:
+
+* README.md exists and updated at affected `docs/` directories
+* `docs/changelog.md` has entry if endpoints or schemas changed
+* OpenAPI spec has descriptions + examples on all fields
+* Schemas have `description` and `examples` on every property
+* ADR written if a significant architectural decision was made
+* Runbook updated if new failure modes introduced
+
+---
+
 ## Communication Rules
 
 * Assume reader understands DDD and Hexagonal architecture

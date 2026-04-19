@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+      target: dev
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      - .:/app
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://ticker:ticker@db:5432/ticker_lab
+      - API_PORT=3000
+      - API_HOST=0.0.0.0
+      - FRANKFURTER_BASE_URL=https://api.frankfurter.dev
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ticker
+      POSTGRES_PASSWORD: ticker
+      POSTGRES_DB: ticker_lab
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticker -d ticker_lab"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

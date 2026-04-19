@@ -1,0 +1,42 @@
+openapi: 3.1.0
+info:
+  title: Ticker Lab API
+  description: Financial data dashboard — exchange rates from ECB via Frankfurter
+  version: 0.1.0
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags:
+        - system
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+        timestamp:
+          type: string
+          format: date-time

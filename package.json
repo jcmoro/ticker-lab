@@ -1,0 +1,31 @@
+{
+  "name": "ticker-lab",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@10.7.0",
+  "scripts": {
+    "dev": "pnpm --filter @ticker-lab/api dev",
+    "build": "pnpm --filter @ticker-lab/api build",
+    "test": "pnpm --filter @ticker-lab/api test",
+    "test:unit": "pnpm --filter @ticker-lab/api test:unit",
+    "test:functional": "pnpm --filter @ticker-lab/api test:functional",
+    "lint": "biome check .",
+    "format": "biome check --fix .",
+    "typecheck": "pnpm --filter @ticker-lab/api typecheck",
+    "openapi:generate": "pnpm --filter @ticker-lab/shared openapi:generate"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lefthook",
+      "@biomejs/biome"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "lefthook": "^1.11.0"
+  }
+}

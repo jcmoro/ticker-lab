@@ -1,0 +1,19 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      run: make lint
+    format:
+      run: make format
+    typecheck:
+      run: make typecheck
+
+commit-msg:
+  commands:
+    conventional:
+      run: 'grep -qE "^(feat|fix|docs|style|refactor|test|chore|ci|perf|build|revert)(\(.+\))?: .+" {1}'
+
+pre-push:
+  commands:
+    test:
+      run: make test

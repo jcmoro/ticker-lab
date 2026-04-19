@@ -1,0 +1,11 @@
+<% layout('../layouts/main', { title: it.title }) %>
+
+<section>
+  <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Exchange Rates</h2>
+  <p style="color: #94a3b8;">
+    Dashboard coming in Phase 2. Data will be ingested daily from the ECB via Frankfurter API.
+  </p>
+  <p style="color: #64748b; font-size: 0.875rem; margin-top: 1rem;">
+    Last checked: <%= it.updatedAt %>
+  </p>
+</section>
