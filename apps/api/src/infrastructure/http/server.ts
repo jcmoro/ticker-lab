@@ -6,6 +6,7 @@ import Fastify from 'fastify';
 import type { Sql } from 'postgres';
 import type { ExchangeRate } from '../../domain/exchange-rate/ExchangeRate.js';
 import { errorHandler } from './error-handler.js';
+import { createMetrics, metricsRoute, registerMetricsHook } from './metrics.js';
 import { apiDocsRoutes } from './routes/api-docs.js';
 import { dashboardRoutes } from './routes/dashboard.js';
 import { exchangeRateRoutes } from './routes/exchange-rates.js';
@@ -28,6 +29,9 @@ export async function buildServer(deps: ServerDependencies) {
 
   server.setErrorHandler(errorHandler);
 
+  const metrics = createMetrics();
+  registerMetricsHook(server, metrics);
+
   const eta = new Eta({ views: viewsDir, cache: process.env.NODE_ENV === 'production' });
 
   await server.register(view, {
@@ -35,6 +39,7 @@ export async function buildServer(deps: ServerDependencies) {
     root: viewsDir,
   });
 
+  await server.register(metricsRoute(metrics));
   await server.register(healthRoutes(deps.db));
   await server.register(apiDocsRoutes);
   await server.register(exchangeRateRoutes(deps));

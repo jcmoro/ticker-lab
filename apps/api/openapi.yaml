@@ -5,7 +5,7 @@ info:
     Financial data dashboard API. Ingests ECB exchange rates daily via Frankfurter
     and serves them through a REST interface. Part of the Ticker Lab experiment
     for aggregating public financial data.
-  version: 0.3.0
+  version: 0.4.0
   contact:
     name: Ticker Lab
   license:

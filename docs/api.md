@@ -25,6 +25,7 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 | GET | `/ready` | Readiness check — verifies DB connectivity, returns 200/503 |
 | GET | `/api/docs` | Interactive API documentation (ReDoc) |
 | GET | `/api/openapi.yaml` | Raw OpenAPI 3.1 spec |
+| GET | `/metrics` | Request counts, uptime, per-route stats (JSON) |
 
 ### Exchange Rates
 

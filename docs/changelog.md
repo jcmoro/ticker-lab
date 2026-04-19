@@ -4,6 +4,22 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Phase 4: Observability
+
+**Summary:** Structured metrics, graceful shutdown, startup banner.
+
+**Endpoints added:**
+- `GET /metrics` — request counts (total + per-route), uptime (JSON)
+
+**Other:**
+- Graceful shutdown: handles SIGTERM/SIGINT, closes Fastify server and Postgres connection
+- Startup log line with version and Node.js version
+- Global onRequest hook tracks request counts per route
+- OpenAPI spec updated to v0.4.0
+- 22 tests (1 new: metrics endpoint)
+
+---
+
 ## 2026-04-19 — Phase 3: API Docs, Readiness & Error Handling
 
 **Summary:** Polish HTTP surface — interactive API documentation, readiness probe, structured error responses.

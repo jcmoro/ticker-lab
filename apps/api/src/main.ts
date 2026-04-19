@@ -30,6 +30,19 @@ const start = async (): Promise<void> => {
   const host = process.env.API_HOST ?? '0.0.0.0';
 
   await server.listen({ port, host });
+
+  server.log.info({ version: '0.3.0', node: process.version }, 'Ticker Lab started');
+
+  // Graceful shutdown
+  const shutdown = async (signal: string) => {
+    server.log.info({ signal }, 'Shutting down');
+    await server.close();
+    await client.end();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 };
 
 start().catch((err: unknown) => {
