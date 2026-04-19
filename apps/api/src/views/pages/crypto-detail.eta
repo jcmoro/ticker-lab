@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= it.coin.name %> — Ticker Lab</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
+    header span { color: #64748b; font-size: 0.875rem; }
+    nav { margin-left: auto; display: flex; gap: 1rem; }
+    nav a { color: #64748b; text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+    nav a:hover { color: #8b5cf6; }
+    main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    .period-btn {
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-decoration: none;
+      background: #fff;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      transition: all 0.15s;
+    }
+    .period-btn:hover { border-color: #8b5cf6; color: #8b5cf6; }
+    .period-btn.active { background: #8b5cf6; color: #fff; border-color: #8b5cf6; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1><a href="/" style="color: inherit; text-decoration: none;">Ticker Lab</a></h1>
+    <span>Financial Data Dashboard</span>
+    <nav>
+      <a href="/">Rates</a>
+      <a href="/crypto">Crypto</a>
+      <a href="/converter">Converter</a>
+      <a href="/api/docs">API</a>
+    </nav>
+  </header>
+  <main>
+    <section>
+      <p style="margin-bottom: 1.5rem;">
+        <a href="/crypto" style="color: #8b5cf6; text-decoration: none; font-size: 0.875rem;">&larr; Back to crypto</a>
+      </p>
+
+      <div style="margin-bottom: 0.5rem;">
+        <h2 style="font-size: 1.5rem; font-weight: 700; display: inline;"><%= it.coin.symbol %></h2>
+        <span style="color: #64748b; font-size: 1rem; margin-left: 0.5rem;"><%= it.coin.name %></span>
+        <span style="font-size: 0.8rem; font-weight: 500; padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.5rem; <%= it.coin.change_24h >= 0 ? 'color: #16a34a; background: #f0fdf4;' : 'color: #dc2626; background: #fef2f2;' %>">
+          <%= it.coin.change_24h >= 0 ? '+' : '' %><%= it.coin.change_24h.toFixed(2) %>%
+        </span>
+      </div>
+
+      <p style="margin-bottom: 0.25rem;">
+        <span style="font-size: 2rem; font-weight: 700; color: #0f172a;">&euro; <%= it.coin.price_eur.toLocaleString(undefined, { maximumFractionDigits: 2 }) %></span>
+      </p>
+      <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem;">
+        $ <%= it.coin.price_usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) %> &middot; <%= it.history.length %> data points
+      </p>
+
+      <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; height: 350px;">
+        <canvas id="cryptoChart"></canvas>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <a href="/crypto/<%= it.coin.coin_id %>?days=30" class="period-btn<%= it.days === '30' ? ' active' : '' %>">30d</a>
+        <a href="/crypto/<%= it.coin.coin_id %>?days=90" class="period-btn<%= it.days === '90' ? ' active' : '' %>">90d</a>
+        <a href="/crypto/<%= it.coin.coin_id %>?days=180" class="period-btn<%= it.days === '180' ? ' active' : '' %>">180d</a>
+        <a href="/crypto/<%= it.coin.coin_id %>?days=365" class="period-btn<%= it.days === '365' ? ' active' : '' %>">365d</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+    var data = <%~ JSON.stringify(it.history) %>;
+    var ctx = document.getElementById('cryptoChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(function(d) { return d.date; }),
+        datasets: [{
+          label: '<%= it.coin.symbol %> (EUR)',
+          data: data.map(function(d) { return d.price; }),
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139, 92, 246, 0.08)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: data.length > 90 ? 0 : 2,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            callbacks: {
+              label: function(c) { return '\u20AC ' + c.parsed.y.toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#94a3b8', maxTicksLimit: 10 },
+            grid: { color: '#f1f5f9' }
+          },
+          y: {
+            ticks: { color: '#94a3b8' },
+            grid: { color: '#f1f5f9' }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

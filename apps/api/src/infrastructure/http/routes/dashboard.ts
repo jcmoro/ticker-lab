@@ -74,5 +74,86 @@ export function dashboardRoutes(deps: DashboardDeps) {
         goBaseUrl,
       });
     });
+
+    const cryptoBaseUrl = process.env.CRYPTO_GO_URL ?? 'http://localhost:8090';
+
+    server.get('/crypto', async (_request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const res = await fetch(`${cryptoBaseUrl}/api/v1/crypto/latest`);
+        const data = (await res.json()) as { date: string; prices: CryptoPrice[] };
+        return reply.viewAsync('pages/crypto', {
+          title: 'Crypto',
+          prices: data.prices ?? [],
+          date: data.date ?? 'N/A',
+        });
+      } catch {
+        return reply.viewAsync('pages/crypto', {
+          title: 'Crypto',
+          prices: [],
+          date: 'N/A',
+        });
+      }
+    });
+
+    server.get<{ Params: { id: string } }>(
+      '/crypto/:id',
+      async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+        const coinId = request.params.id;
+        const { days = '90' } = request.query as { days?: string };
+
+        try {
+          const [latestRes, historyRes] = await Promise.all([
+            fetch(`${cryptoBaseUrl}/api/v1/crypto/latest`),
+            fetch(`${cryptoBaseUrl}/api/v1/crypto/${coinId}/history?days=${days}`),
+          ]);
+
+          const latest = (await latestRes.json()) as { prices: CryptoPrice[] };
+          const history = (await historyRes.json()) as {
+            prices: { date: string; price: number }[];
+          };
+
+          const coin = (latest.prices ?? []).find((p: CryptoPrice) => p.coin_id === coinId);
+
+          return reply.viewAsync('pages/crypto-detail', {
+            title: coin?.name ?? coinId,
+            coin: coin ?? {
+              coin_id: coinId,
+              symbol: '',
+              name: coinId,
+              price_eur: 0,
+              price_usd: 0,
+              change_24h: 0,
+            },
+            history: history.prices ?? [],
+            days,
+          });
+        } catch {
+          return reply.viewAsync('pages/crypto-detail', {
+            title: coinId,
+            coin: {
+              coin_id: coinId,
+              symbol: '',
+              name: coinId,
+              price_eur: 0,
+              price_usd: 0,
+              change_24h: 0,
+            },
+            history: [],
+            days,
+          });
+        }
+      },
+    );
   };
+}
+
+interface CryptoPrice {
+  coin_id: string;
+  symbol: string;
+  name: string;
+  price_eur: number;
+  price_usd: number;
+  market_cap_eur?: number;
+  change_24h: number;
+  date?: string;
 }

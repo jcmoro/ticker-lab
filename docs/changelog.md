@@ -23,6 +23,23 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Crypto Frontend Integration
+
+**Summary:** Integrated Go crypto microservice into the Node.js SSR dashboard.
+
+**Pages added:**
+- `GET /crypto` — top 20 crypto prices with EUR/USD, 24h change (green/red badges), links to detail
+- `GET /crypto/:id` — Chart.js chart with period selector (purple theme to distinguish from exchange rates)
+
+**Other:**
+- Navigation bar updated: Rates / Crypto / Converter / API
+- Node fetches from Go crypto service via `CRYPTO_GO_URL` env var
+- docker-compose: Node service connected to Go services via Docker DNS
+- Makefile: `make job-crypto` (local) and `make prod-crypto` (production)
+- `.env.example` updated with `GO_CONVERTER_URL` and `CRYPTO_GO_URL`
+
+---
+
 ## 2026-04-19 — Phase 8: Crypto (CoinGecko, Go)
 
 **Summary:** Second bounded context — top 20 crypto prices from CoinGecko, implemented as a standalone Go microservice.

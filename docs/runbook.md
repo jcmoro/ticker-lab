@@ -152,6 +152,16 @@ DATABASE_URL="<neon-connection-string>" make prod-ingest
 DATABASE_URL="<neon-connection-string>" make prod-backfill
 ```
 
+### Crypto ingestion
+
+```bash
+# Local
+make job-crypto
+
+# Production
+DATABASE_URL="<neon-connection-string>" make prod-crypto
+```
+
 ### Connect to production database
 
 ```bash
@@ -171,6 +181,8 @@ Render dashboard → tickerlab → Logs. No CLI log access on free tier.
 - Readiness: https://tickerlab.onrender.com/ready
 - API docs: https://tickerlab.onrender.com/api/docs
 - Metrics: https://tickerlab.onrender.com/metrics
+- Crypto: https://tickerlab.onrender.com/crypto
+- Crypto API: https://tickerlab-crypto.onrender.com/api/v1/crypto/latest
 
 ### Cold starts
 

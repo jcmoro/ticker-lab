@@ -19,7 +19,7 @@ Financial data dashboard that ingests public economic data daily and displays it
 **Live:**
 - Dashboard: https://tickerlab.onrender.com
 - Go converter: https://tickerlab-go.onrender.com
-- Go crypto: https://tickerlab-crypto.onrender.com (when deployed)
+- Go crypto: https://tickerlab-crypto.onrender.com
 
 ## Quick Start
 
@@ -83,12 +83,14 @@ make db-seed         # Seed development data
 # Data
 make job-ingest      # Fetch latest ECB rates
 make job-backfill    # Backfill historical exchange rates
+make job-crypto      # Fetch latest crypto prices from CoinGecko
 
 # Production
 make deploy          # Trigger Render deploy
 make prod-db         # Connect to Neon Postgres
 make prod-ingest     # Run ECB ingestion against production
 make prod-backfill   # Backfill exchange rates against production
+make prod-crypto     # Fetch crypto prices against production
 ```
 
 ## Services
@@ -131,6 +133,8 @@ docs/                         Architecture, API, runbook, ADRs, roadmap
 |-----|---------|-------------|
 | `/` | Node | Dashboard — 30 currencies with flags, names, rates |
 | `/rates/:quote` | Node | Detail — Chart.js chart with 30d/90d/180d/365d selector |
+| `/crypto` | Node → Go | Top 20 crypto prices with 24h change |
+| `/crypto/:id` | Node → Go | Crypto detail — Chart.js chart with period selector |
 | `/converter` | Node | Currency converter — Node/Go/Both toggle with response times |
 | `/api/docs` | Node | Interactive API documentation (ReDoc) |
 

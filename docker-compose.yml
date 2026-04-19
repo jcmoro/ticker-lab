@@ -14,6 +14,8 @@ services:
       - API_PORT=3000
       - API_HOST=0.0.0.0
       - FRANKFURTER_BASE_URL=https://api.frankfurter.dev
+      - GO_CONVERTER_URL=http://converter-go:8080
+      - CRYPTO_GO_URL=http://crypto-go:8090
     depends_on:
       db:
         condition: service_healthy

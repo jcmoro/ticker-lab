@@ -54,6 +54,8 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 |--------|------|-------------|
 | GET | `/` | Dashboard — 30 currencies with flags, names, links to detail |
 | GET | `/rates/:quote` | Detail — Chart.js line chart, period selector (30d/90d/180d/365d) |
+| GET | `/crypto` | Top 20 crypto prices with 24h change (fetches from Go service) |
+| GET | `/crypto/:id` | Crypto detail — Chart.js chart with period selector |
 | GET | `/converter` | Interactive converter — dropdowns with flags, swap, live result |
 
 ## Response Formats

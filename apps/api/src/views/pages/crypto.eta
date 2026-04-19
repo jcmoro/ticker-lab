@@ -1,0 +1,42 @@
+<% layout('../layouts/main', { title: it.title }) %>
+
+<section>
+  <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.5rem; font-weight: 700;">Crypto Prices</h2>
+    <span style="color: #64748b; font-size: 0.875rem;">
+      Top 20 &middot; <%= it.date %>
+    </span>
+  </div>
+
+  <% if (it.prices.length === 0) { %>
+    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; text-align: center;">
+      <p style="color: #64748b;">No crypto data available. Run ingestion on the crypto service.</p>
+    </div>
+  <% } else { %>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem;">
+      <% it.prices.forEach(function(p) { %>
+        <a href="/crypto/<%= p.coin_id %>" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.25rem; text-decoration: none; color: inherit; transition: all 0.15s;" onmouseover="this.style.borderColor='#8b5cf6'; this.style.boxShadow='0 2px 8px rgba(139,92,246,0.1)'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <div>
+              <div style="font-weight: 600; font-size: 0.875rem; color: #0f172a;"><%= p.symbol %></div>
+              <div style="font-size: 0.7rem; color: #94a3b8;"><%= p.name %></div>
+            </div>
+            <div style="font-size: 0.75rem; font-weight: 500; padding: 0.15rem 0.4rem; border-radius: 4px; <%= p.change_24h >= 0 ? 'color: #16a34a; background: #f0fdf4;' : 'color: #dc2626; background: #fef2f2;' %>">
+              <%= p.change_24h >= 0 ? '+' : '' %><%= p.change_24h.toFixed(2) %>%
+            </div>
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 700; color: #0f172a;">
+            &euro; <%= p.price_eur.toLocaleString(undefined, { maximumFractionDigits: 2 }) %>
+          </div>
+          <div style="font-size: 0.75rem; color: #94a3b8;">
+            $ <%= p.price_usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <p style="color: #94a3b8; font-size: 0.75rem; margin-top: 1.5rem;">
+    Source: CoinGecko API &middot; Powered by Go
+  </p>
+</section>
