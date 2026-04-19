@@ -7,32 +7,40 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
       line-height: 1.6;
       min-height: 100vh;
     }
     header {
-      border-bottom: 1px solid #1e293b;
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
       padding: 1rem 2rem;
       display: flex;
       align-items: center;
       gap: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    header h1 { font-size: 1.25rem; font-weight: 600; }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
     header span { color: #64748b; font-size: 0.875rem; }
     main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
     .period-btn {
       padding: 0.4rem 0.8rem;
       border-radius: 6px;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 500;
       text-decoration: none;
-      background: #1e293b;
-      color: #94a3b8;
+      background: #fff;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      transition: all 0.15s;
     }
-    .period-btn.active { background: #3b82f6; color: #fff; }
+    .period-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+    .period-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <header>
@@ -41,19 +49,26 @@
   </header>
   <main>
     <section>
-      <p style="margin-bottom: 1rem;">
-        <a href="/" style="color: #64748b; text-decoration: none;">&larr; Back to dashboard</a>
+      <p style="margin-bottom: 1.5rem;">
+        <a href="/" style="color: #3b82f6; text-decoration: none; font-size: 0.875rem;">&larr; Back to dashboard</a>
       </p>
 
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.25rem;">EUR / <%= it.quote %></h2>
-      <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.5rem;">
-        Current rate: <strong style="color: #e2e8f0; font-size: 1.5rem;"><%= it.currentRate %></strong>
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 2rem;"><%= it.flag %></span>
+        <div>
+          <h2 style="font-size: 1.5rem; font-weight: 700;">EUR / <%= it.quote %></h2>
+          <p style="color: #64748b; font-size: 0.875rem;"><%= it.currencyName %></p>
+        </div>
+      </div>
+
+      <p style="margin-bottom: 0.25rem;">
+        <span style="font-size: 2rem; font-weight: 700; color: #0f172a;"><%= it.currentRate %></span>
       </p>
-      <p style="color: #475569; font-size: 0.75rem; margin-bottom: 1.5rem;">
+      <p style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 1.5rem;">
         <%= it.from %> to <%= it.to %> &middot; <%= it.history.length %> data points
       </p>
 
-      <div style="background: #1e293b; border-radius: 8px; padding: 1.5rem; height: 350px;">
+      <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; height: 350px;">
         <canvas id="rateChart"></canvas>
       </div>
 
@@ -78,7 +93,7 @@
           label: 'EUR/<%= it.quote %>',
           data: data.map(function(d) { return d.rate; }),
           borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          backgroundColor: 'rgba(59, 130, 246, 0.08)',
           fill: true,
           tension: 0.3,
           pointRadius: data.length > 90 ? 0 : 2,
@@ -91,6 +106,9 @@
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: '#0f172a',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
             callbacks: {
               label: function(c) { return c.parsed.y.toFixed(4); }
             }
@@ -98,12 +116,12 @@
         },
         scales: {
           x: {
-            ticks: { color: '#64748b', maxTicksLimit: 10 },
-            grid: { color: '#1e293b' }
+            ticks: { color: '#94a3b8', maxTicksLimit: 10 },
+            grid: { color: '#f1f5f9' }
           },
           y: {
-            ticks: { color: '#64748b' },
-            grid: { color: '#1e293b' }
+            ticks: { color: '#94a3b8' },
+            grid: { color: '#f1f5f9' }
           }
         }
       }

@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ExchangeRate } from '../../../domain/exchange-rate/ExchangeRate.js';
 import type { HistoryPoint } from '../../../domain/exchange-rate/ExchangeRateRepository.js';
+import { enrichRates, getCurrencyMeta } from '../currency-meta.js';
 
 interface DashboardDeps {
   getLatestRates: { execute(baseCurrency: string): Promise<ExchangeRate[]> };
@@ -27,7 +28,7 @@ export function dashboardRoutes(deps: DashboardDeps) {
 
       return reply.viewAsync('pages/dashboard', {
         title: 'Ticker Lab',
-        rates: rates.map((r) => ({ currency: r.quoteCurrency, rate: r.rate })),
+        rates: enrichRates(rates.map((r) => ({ currency: r.quoteCurrency, rate: r.rate }))),
         date,
         updatedAt: new Date().toISOString(),
       });
@@ -50,9 +51,13 @@ export function dashboardRoutes(deps: DashboardDeps) {
 
         const currentRate = rates.find((r) => r.quoteCurrency === quote)?.rate ?? 0;
 
+        const meta = getCurrencyMeta(quote);
+
         return reply.viewAsync('pages/rate-detail', {
           quote,
           currentRate: currentRate.toFixed(4),
+          currencyName: meta.name,
+          flag: meta.flag,
           from,
           to,
           days,

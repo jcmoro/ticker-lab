@@ -1,32 +1,39 @@
 <% layout('../layouts/main', { title: it.title }) %>
 
 <section>
-  <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Exchange Rates</h2>
-  <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1.5rem;">
-    Base: <strong style="color: #e2e8f0;">EUR</strong> &middot; Date: <strong style="color: #e2e8f0;"><%= it.date %></strong>
-  </p>
+  <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.5rem; font-weight: 700;">Exchange Rates</h2>
+    <span style="color: #64748b; font-size: 0.875rem;">
+      Base: <strong style="color: #0f172a;">EUR</strong> &middot; <%= it.date %>
+    </span>
+  </div>
 
   <% if (it.rates.length === 0) { %>
-    <p style="color: #94a3b8;">
-      No rates available yet. Run <code style="background: #1e293b; padding: 0.2em 0.4em; border-radius: 4px;">make job-ingest</code> to fetch data from the ECB.
-    </p>
+    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; text-align: center;">
+      <p style="color: #64748b;">
+        No rates available yet. Run <code style="background: #f1f5f9; padding: 0.2em 0.5em; border-radius: 4px; font-size: 0.875rem;">make job-ingest</code> to fetch data from the ECB.
+      </p>
+    </div>
   <% } else { %>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem;">
       <% it.rates.forEach(function(r) { %>
-        <a href="/rates/<%= r.currency %>" style="background: #1e293b; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; transition: background 0.15s;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
-          <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
-            EUR / <%= r.currency %>
+        <a href="/rates/<%= r.currency %>" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.25rem; text-decoration: none; color: inherit; transition: all 0.15s;" onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 2px 8px rgba(59,130,246,0.1)'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.25rem;"><%= r.flag %></span>
+            <div>
+              <div style="font-weight: 600; font-size: 0.875rem; color: #0f172a;"><%= r.currency %></div>
+              <div style="font-size: 0.7rem; color: #94a3b8;"><%= r.name %></div>
+            </div>
           </div>
-          <div style="font-size: 1.25rem; font-weight: 600; margin-top: 0.25rem;">
+          <div style="font-size: 1.5rem; font-weight: 700; color: #0f172a;">
             <%= r.rate.toFixed(4) %>
           </div>
-          <div style="color: #475569; font-size: 0.625rem; margin-top: 0.25rem;">View chart &rarr;</div>
         </a>
       <% }) %>
     </div>
   <% } %>
 
-  <p style="color: #475569; font-size: 0.75rem; margin-top: 1.5rem;">
+  <p style="color: #94a3b8; font-size: 0.75rem; margin-top: 1.5rem;">
     Source: European Central Bank via Frankfurter API &middot; Last checked: <%= it.updatedAt %>
   </p>
 </section>

@@ -27,7 +27,8 @@ describe('GET / (dashboard)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
-    expect(response.body).toContain('EUR / GBP');
+    expect(response.body).toContain('GBP');
+    expect(response.body).toContain('British Pound');
     expect(response.body).toContain('0.8561');
     expect(response.body).toContain('href="/rates/GBP"');
     expect(response.body).toContain('href="/rates/USD"');
@@ -59,6 +60,7 @@ describe('GET /rates/:quote (detail page)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toContain('EUR / USD');
+    expect(response.body).toContain('US Dollar');
     expect(response.body).toContain('1.1358');
     expect(response.body).toContain('chart.umd.min.js');
     expect(response.body).toContain('rateChart');

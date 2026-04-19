@@ -84,6 +84,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exchange-rates/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get historical exchange rates for a currency pair
+         * @description Returns a time series of exchange rates for a specific currency pair over a date range. Used for charts and trend analysis.
+         */
+        get: operations["getExchangeRateHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -105,6 +125,53 @@ export interface components {
              * @example 2026-04-19T12:00:00.000Z
              */
             timestamp: string;
+        };
+        /**
+         * HistoryResponse
+         * @description Time series of exchange rates for a currency pair
+         */
+        HistoryResponse: {
+            /**
+             * @description ISO 4217 base currency code
+             * @example EUR
+             */
+            base: string;
+            /**
+             * @description ISO 4217 quote currency code
+             * @example USD
+             */
+            quote: string;
+            /**
+             * Format: date
+             * @description Start date of the range
+             * @example 2026-01-01
+             */
+            from: string;
+            /**
+             * Format: date
+             * @description End date of the range
+             * @example 2026-04-17
+             */
+            to: string;
+            /** @description Time series of rates ordered by date ascending */
+            rates: components["schemas"]["HistoryPoint"][];
+        };
+        /**
+         * HistoryPoint
+         * @description A single data point in a rate time series
+         */
+        HistoryPoint: {
+            /**
+             * Format: date
+             * @description Date of the rate
+             * @example 2026-01-02
+             */
+            date: string;
+            /**
+             * @description Exchange rate on this date
+             * @example 1.0358
+             */
+            rate: number;
         };
         /**
          * ReadinessResponse
@@ -376,6 +443,65 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getExchangeRateHistory: {
+        parameters: {
+            query: {
+                /**
+                 * @description ISO 4217 base currency code. Defaults to EUR.
+                 * @example EUR
+                 */
+                base?: components["parameters"]["BaseCurrency"];
+                /**
+                 * @description ISO 4217 quote currency code
+                 * @example USD
+                 */
+                quote: string;
+                /**
+                 * @description Start date (YYYY-MM-DD). Defaults to 30 days ago.
+                 * @example 2026-01-01
+                 */
+                from?: string;
+                /**
+                 * @description End date (YYYY-MM-DD). Defaults to today.
+                 * @example 2026-04-17
+                 */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Historical exchange rates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "base": "EUR",
+                     *       "quote": "USD",
+                     *       "from": "2026-01-01",
+                     *       "to": "2026-04-17",
+                     *       "rates": [
+                     *         {
+                     *           "date": "2026-01-02",
+                     *           "rate": 1.0358
+                     *         },
+                     *         {
+                     *           "date": "2026-01-03",
+                     *           "rate": 1.0412
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["HistoryResponse"];
                 };
             };
         };
