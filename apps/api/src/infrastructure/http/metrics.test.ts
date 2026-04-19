@@ -4,6 +4,7 @@ import { buildServer } from './server.js';
 const stubDeps = {
   getLatestRates: { execute: vi.fn().mockResolvedValue([]) },
   getRatesByDate: { execute: vi.fn().mockResolvedValue([]) },
+  getRateHistory: { execute: vi.fn().mockResolvedValue([]) },
 };
 
 describe('GET /metrics', () => {

@@ -13,6 +13,7 @@ function stubRepository(rates: ExchangeRate[]): ExchangeRateRepository {
     save: vi.fn(),
     findLatest: vi.fn().mockResolvedValue(rates),
     findByDate: vi.fn(),
+    findHistory: vi.fn(),
   };
 }
 

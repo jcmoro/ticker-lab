@@ -32,6 +32,7 @@ export function errorHandler(error: FastifyError, _request: FastifyRequest, repl
       .send(problemDetails(404, 'Not Found', error.message, 'RATES_NOT_FOUND'));
   }
 
+  _request.log.error(error);
   const status = error.statusCode ?? 500;
   const detail = status >= 500 ? 'An unexpected error occurred' : error.message;
 

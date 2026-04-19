@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EUR/<%= it.quote %> — Ticker Lab</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    header {
+      border-bottom: 1px solid #1e293b;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    header span { color: #64748b; font-size: 0.875rem; }
+    main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    .period-btn {
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      text-decoration: none;
+      background: #1e293b;
+      color: #94a3b8;
+    }
+    .period-btn.active { background: #3b82f6; color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ticker Lab</h1>
+    <span>Exchange Rates Dashboard</span>
+  </header>
+  <main>
+    <section>
+      <p style="margin-bottom: 1rem;">
+        <a href="/" style="color: #64748b; text-decoration: none;">&larr; Back to dashboard</a>
+      </p>
+
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.25rem;">EUR / <%= it.quote %></h2>
+      <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.5rem;">
+        Current rate: <strong style="color: #e2e8f0; font-size: 1.5rem;"><%= it.currentRate %></strong>
+      </p>
+      <p style="color: #475569; font-size: 0.75rem; margin-bottom: 1.5rem;">
+        <%= it.from %> to <%= it.to %> &middot; <%= it.history.length %> data points
+      </p>
+
+      <div style="background: #1e293b; border-radius: 8px; padding: 1.5rem; height: 350px;">
+        <canvas id="rateChart"></canvas>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <a href="/rates/<%= it.quote %>?days=30" class="period-btn<%= it.days === '30' ? ' active' : '' %>">30d</a>
+        <a href="/rates/<%= it.quote %>?days=90" class="period-btn<%= it.days === '90' ? ' active' : '' %>">90d</a>
+        <a href="/rates/<%= it.quote %>?days=180" class="period-btn<%= it.days === '180' ? ' active' : '' %>">180d</a>
+        <a href="/rates/<%= it.quote %>?days=365" class="period-btn<%= it.days === '365' ? ' active' : '' %>">365d</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+    var data = <%~ JSON.stringify(it.history) %>;
+    var ctx = document.getElementById('rateChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(function(d) { return d.date; }),
+        datasets: [{
+          label: 'EUR/<%= it.quote %>',
+          data: data.map(function(d) { return d.rate; }),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: data.length > 90 ? 0 : 2,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(c) { return c.parsed.y.toFixed(4); }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#64748b', maxTicksLimit: 10 },
+            grid: { color: '#1e293b' }
+          },
+          y: {
+            ticks: { color: '#64748b' },
+            grid: { color: '#1e293b' }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

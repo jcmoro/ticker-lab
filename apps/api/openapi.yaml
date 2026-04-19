@@ -5,7 +5,7 @@ info:
     Financial data dashboard API. Ingests ECB exchange rates daily via Frankfurter
     and serves them through a REST interface. Part of the Ticker Lab experiment
     for aggregating public financial data.
-  version: 0.4.0
+  version: 0.5.0
   contact:
     name: Ticker Lab
   license:
@@ -133,6 +133,58 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /api/v1/exchange-rates/history:
+    get:
+      operationId: getExchangeRateHistory
+      summary: Get historical exchange rates for a currency pair
+      description: Returns a time series of exchange rates for a specific currency pair over a date range. Used for charts and trend analysis.
+      tags:
+        - exchange-rates
+      parameters:
+        - $ref: "#/components/parameters/BaseCurrency"
+        - name: quote
+          in: query
+          required: true
+          description: ISO 4217 quote currency code
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+          example: USD
+        - name: from
+          in: query
+          required: false
+          description: Start date (YYYY-MM-DD). Defaults to 30 days ago.
+          schema:
+            type: string
+            format: date
+          example: "2026-01-01"
+        - name: to
+          in: query
+          required: false
+          description: End date (YYYY-MM-DD). Defaults to today.
+          schema:
+            type: string
+            format: date
+          example: "2026-04-17"
+      responses:
+        "200":
+          description: Historical exchange rates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryResponse"
+              example:
+                base: EUR
+                quote: USD
+                from: "2026-01-01"
+                to: "2026-04-17"
+                rates:
+                  - date: "2026-01-02"
+                    rate: 1.0358
+                  - date: "2026-01-03"
+                    rate: 1.0412
+
 components:
   parameters:
     BaseCurrency:
@@ -167,6 +219,59 @@ components:
           format: date-time
           description: Current server time in ISO 8601 format
           example: "2026-04-19T12:00:00.000Z"
+
+    HistoryResponse:
+      title: HistoryResponse
+      description: Time series of exchange rates for a currency pair
+      type: object
+      required:
+        - base
+        - quote
+        - from
+        - to
+        - rates
+      properties:
+        base:
+          type: string
+          description: ISO 4217 base currency code
+          example: EUR
+        quote:
+          type: string
+          description: ISO 4217 quote currency code
+          example: USD
+        from:
+          type: string
+          format: date
+          description: Start date of the range
+          example: "2026-01-01"
+        to:
+          type: string
+          format: date
+          description: End date of the range
+          example: "2026-04-17"
+        rates:
+          type: array
+          description: Time series of rates ordered by date ascending
+          items:
+            $ref: "#/components/schemas/HistoryPoint"
+
+    HistoryPoint:
+      title: HistoryPoint
+      description: A single data point in a rate time series
+      type: object
+      required:
+        - date
+        - rate
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date of the rate
+          example: "2026-01-02"
+        rate:
+          type: number
+          description: Exchange rate on this date
+          example: 1.0358
 
     ReadinessResponse:
       title: ReadinessResponse

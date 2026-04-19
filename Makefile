@@ -101,6 +101,9 @@ openapi-generate:
 job-ingest:
 	docker compose run --rm api pnpm --filter @ticker-lab/api job:ingest
 
+job-backfill: ## Backfill historical rates (default: 2024-01-01 to today)
+	docker compose run --rm api pnpm --filter @ticker-lab/api job:backfill
+
 # ─── Build & Deploy ──────────────────────────────────────────
 
 build:

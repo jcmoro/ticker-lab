@@ -8,6 +8,7 @@ function stubProvider(rates: ExchangeRate[]): ExchangeRateProvider {
   return {
     fetchLatest: vi.fn().mockResolvedValue(rates),
     fetchByDate: vi.fn().mockResolvedValue(rates),
+    fetchDateRange: vi.fn().mockResolvedValue(rates),
   };
 }
 
@@ -16,6 +17,7 @@ function stubRepository(): ExchangeRateRepository & { save: ReturnType<typeof vi
     save: vi.fn().mockResolvedValue(undefined),
     findLatest: vi.fn().mockResolvedValue([]),
     findByDate: vi.fn().mockResolvedValue([]),
+    findHistory: vi.fn().mockResolvedValue([]),
   };
 }
 

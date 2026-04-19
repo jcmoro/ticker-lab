@@ -16,7 +16,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
     "openapi:generate": "openapi-typescript openapi.yaml -o ../packages/shared/src/generated/api.ts",
-    "job:ingest": "tsx src/infrastructure/jobs/ingest.ts"
+    "job:ingest": "tsx src/infrastructure/jobs/ingest.ts",
+    "job:backfill": "tsx src/infrastructure/jobs/backfill.ts"
   },
   "dependencies": {
     "@fastify/view": "^10.0.0",

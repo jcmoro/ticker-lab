@@ -1,7 +1,10 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { ExchangeRate } from '../../domain/exchange-rate/ExchangeRate.js';
-import type { ExchangeRateRepository } from '../../domain/exchange-rate/ExchangeRateRepository.js';
+import type {
+  ExchangeRateRepository,
+  HistoryPoint,
+} from '../../domain/exchange-rate/ExchangeRateRepository.js';
 import * as schema from './schema.js';
 
 export class DrizzleExchangeRateRepository implements ExchangeRateRepository {
@@ -64,5 +67,27 @@ export class DrizzleExchangeRateRepository implements ExchangeRateRepository {
       rate: Number(row.rate),
       date: row.date,
     }));
+  }
+
+  async findHistory(
+    baseCurrency: string,
+    quoteCurrency: string,
+    from: string,
+    to: string,
+  ): Promise<HistoryPoint[]> {
+    const rows = await this.db
+      .select({ date: schema.exchangeRates.date, rate: schema.exchangeRates.rate })
+      .from(schema.exchangeRates)
+      .where(
+        and(
+          eq(schema.exchangeRates.baseCurrency, baseCurrency),
+          eq(schema.exchangeRates.quoteCurrency, quoteCurrency),
+          gte(schema.exchangeRates.date, from),
+          lte(schema.exchangeRates.date, to),
+        ),
+      )
+      .orderBy(asc(schema.exchangeRates.date));
+
+    return rows.map((row) => ({ date: row.date, rate: Number(row.rate) }));
   }
 }
