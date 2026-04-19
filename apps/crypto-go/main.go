@@ -99,6 +99,11 @@ func runBackfill(repo *Repository, days int) {
 	total := 0
 
 	for i, coin := range topCoins {
+		if i > 0 {
+			log.Printf("  Waiting 15s (rate limit)...")
+			time.Sleep(15 * time.Second)
+		}
+
 		log.Printf("[%d/%d] Fetching %s (%d days)...", i+1, len(topCoins), coin.Symbol, days)
 
 		prices, err := client.FetchHistory(coin.ID, days)
@@ -114,11 +119,6 @@ func runBackfill(repo *Repository, days int) {
 			}
 			log.Printf("  Saved %d data points", len(prices))
 			total += len(prices)
-		}
-
-		// Rate limit: ~6 req/min to be safe with CoinGecko free tier
-		if i < len(topCoins)-1 {
-			time.Sleep(10 * time.Second)
 		}
 	}
 

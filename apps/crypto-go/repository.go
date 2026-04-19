@@ -36,7 +36,21 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	return err
 }
 
+func dedup(prices []CryptoPrice) []CryptoPrice {
+	seen := make(map[string]bool)
+	result := make([]CryptoPrice, 0, len(prices))
+	for _, p := range prices {
+		key := p.CoinID + "|" + p.Date
+		if !seen[key] {
+			seen[key] = true
+			result = append(result, p)
+		}
+	}
+	return result
+}
+
 func (r *Repository) Save(ctx context.Context, prices []CryptoPrice) error {
+	prices = dedup(prices)
 	if len(prices) == 0 {
 		return nil
 	}
