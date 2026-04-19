@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -28,10 +29,22 @@ func main() {
 		log.Fatalf("Migration failed: %v", err)
 	}
 
-	// Subcommand: ingest
-	if len(os.Args) > 1 && os.Args[1] == "ingest" {
-		runIngest(repo)
-		return
+	// Subcommands
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "ingest":
+			runIngest(repo)
+			return
+		case "backfill":
+			days := 365
+			if len(os.Args) > 2 {
+				if d, err := fmt.Sscanf(os.Args[2], "%d", &days); d == 0 || err != nil {
+					days = 365
+				}
+			}
+			runBackfill(repo, days)
+			return
+		}
 	}
 
 	// Default: serve HTTP
@@ -79,4 +92,35 @@ func runIngest(repo *Repository) {
 	}
 
 	fmt.Printf("Done: %d crypto prices ingested.\n", len(prices))
+}
+
+func runBackfill(repo *Repository, days int) {
+	client := NewCoinGeckoClient()
+	total := 0
+
+	for i, coin := range topCoins {
+		log.Printf("[%d/%d] Fetching %s (%d days)...", i+1, len(topCoins), coin.Symbol, days)
+
+		prices, err := client.FetchHistory(coin.ID, days)
+		if err != nil {
+			log.Printf("  Error: %v (skipping)", err)
+			continue
+		}
+
+		if len(prices) > 0 {
+			if err := repo.Save(context.Background(), prices); err != nil {
+				log.Printf("  Save error: %v (skipping)", err)
+				continue
+			}
+			log.Printf("  Saved %d data points", len(prices))
+			total += len(prices)
+		}
+
+		// Rate limit: ~6 req/min to be safe with CoinGecko free tier
+		if i < len(topCoins)-1 {
+			time.Sleep(10 * time.Second)
+		}
+	}
+
+	fmt.Printf("Done: %d total crypto data points backfilled.\n", total)
 }

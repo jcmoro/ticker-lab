@@ -155,12 +155,17 @@ DATABASE_URL="<neon-connection-string>" make prod-backfill
 ### Crypto ingestion
 
 ```bash
-# Local
+# Latest prices (local)
 make job-crypto
 
-# Production
-DATABASE_URL="<neon-connection-string>" make prod-crypto
+# Latest prices (production)
+make prod-crypto
+
+# Backfill 365 days history (production, ~3.5 min)
+make prod-crypto-backfill
 ```
+
+CoinGecko free tier rate limit: ~10 req/min. Backfill throttles to 1 request per 10 seconds.
 
 ### Connect to production database
 

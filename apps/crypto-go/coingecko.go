@@ -79,3 +79,58 @@ func (c *CoinGeckoClient) FetchPrices(coins []struct{ ID, Symbol, Name string })
 
 	return prices, nil
 }
+
+type marketChartResponse struct {
+	Prices [][]float64 `json:"prices"` // [[timestamp_ms, price], ...]
+}
+
+// FetchHistory fetches daily price history for a single coin.
+// CoinGecko rate limit: ~10 req/min on free tier — caller should throttle.
+func (c *CoinGeckoClient) FetchHistory(coinID string, days int) ([]CryptoPrice, error) {
+	url := fmt.Sprintf("%s/coins/%s/market_chart?vs_currency=eur&days=%d&interval=daily",
+		c.baseURL, coinID, days)
+
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("coingecko history request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("coingecko history returned %d", resp.StatusCode)
+	}
+
+	var data marketChartResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, fmt.Errorf("coingecko history decode failed: %w", err)
+	}
+
+	// Find coin metadata
+	var symbol, name string
+	for _, coin := range topCoins {
+		if coin.ID == coinID {
+			symbol = coin.Symbol
+			name = coin.Name
+			break
+		}
+	}
+
+	var prices []CryptoPrice
+	for _, point := range data.Prices {
+		if len(point) < 2 {
+			continue
+		}
+		ts := time.UnixMilli(int64(point[0])).UTC()
+		date := ts.Format("2006-01-02")
+		prices = append(prices, CryptoPrice{
+			CoinID:   coinID,
+			Symbol:   symbol,
+			Name:     name,
+			PriceEUR: point[1],
+			PriceUSD: 0, // market_chart only returns one currency
+			Date:     date,
+		})
+	}
+
+	return prices, nil
+}

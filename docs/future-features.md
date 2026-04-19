@@ -62,6 +62,14 @@ Items marked ~~strikethrough~~ are already implemented.
 
 ---
 
+## Test Coverage Improvements
+- Integration tests for backfill/ingest jobs (end-to-end with test DB)
+- HTTP mock tests for FrankfurterClient.fetchDateRange and CoinGeckoClient.FetchHistory/FetchPrices
+- Test the full job flow: fetch → save → verify in DB
+- CI pipeline for Go tests (`go test ./...` in GitHub Actions)
+
+---
+
 ## Additional Features (unordered)
 
 ### Comparisons

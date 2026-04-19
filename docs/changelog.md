@@ -23,6 +23,18 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-20 — Crypto Historical Backfill
+
+**Summary:** Backfill historical crypto prices from CoinGecko market_chart API.
+
+**Changes:**
+- `FetchHistory` in CoinGecko client — fetches daily prices for a coin over N days
+- `backfill` subcommand: `./crypto-go backfill 365` — iterates top 20 coins with 10s rate limit pause
+- Makefile: `make prod-crypto-backfill` for production
+- ~3.5 min for 20 coins × 365 days
+
+---
+
 ## 2026-04-19 — Automated Crypto Ingestion
 
 **Summary:** Crypto prices now ingested automatically via GitHub Actions cron.

@@ -84,13 +84,15 @@ make db-seed         # Seed development data
 make job-ingest      # Fetch latest ECB rates
 make job-backfill    # Backfill historical exchange rates
 make job-crypto      # Fetch latest crypto prices from CoinGecko
+# Crypto backfill: make prod-crypto-backfill (365 days, ~3.5 min)
 
 # Production
 make deploy          # Trigger Render deploy
 make prod-db         # Connect to Neon Postgres
 make prod-ingest     # Run ECB ingestion against production
 make prod-backfill   # Backfill exchange rates against production
-make prod-crypto     # Fetch crypto prices against production
+make prod-crypto          # Fetch crypto prices against production
+make prod-crypto-backfill # Backfill crypto history (365 days, ~3.5 min)
 ```
 
 ## Services
