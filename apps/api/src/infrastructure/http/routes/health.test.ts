@@ -24,3 +24,22 @@ describe('GET /health', () => {
     await server.close();
   });
 });
+
+describe('GET /ready', () => {
+  it('returns 503 when no db is provided', async () => {
+    const server = await buildServer(stubDeps);
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+
+    expect(response.statusCode).toBe(503);
+
+    const body = JSON.parse(response.body) as { status: string; checks: { database: string } };
+    expect(body.status).toBe('not_ready');
+    expect(body.checks.database).toBe('error');
+
+    await server.close();
+  });
+});

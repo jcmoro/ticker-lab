@@ -4,6 +4,22 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Phase 3: API Docs, Readiness & Error Handling
+
+**Summary:** Polish HTTP surface — interactive API documentation, readiness probe, structured error responses.
+
+**Endpoints added:**
+- `GET /ready` — readiness check with DB connectivity verification (200/503)
+- `GET /api/docs` — interactive API documentation via ReDoc
+- `GET /api/openapi.yaml` — raw OpenAPI spec endpoint
+
+**Other:**
+- Error handler returns RFC 9457 ProblemDetails (`application/problem+json`) for domain errors
+- OpenAPI spec updated to v0.3.0 with ReadinessResponse schema
+- 21 tests (3 new: readiness, OpenAPI spec, ReDoc page)
+
+---
+
 ## 2026-04-19 — Phase 2: Exchange Rates MVP
 
 **Summary:** First functional data pipeline — ECB exchange rates ingested daily from Frankfurter API, served via REST and displayed in SSR dashboard.

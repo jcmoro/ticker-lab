@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness check
+         * @description Returns service readiness status including database connectivity. Used by orchestrators to determine if the service can accept traffic.
+         */
+        get: operations["getReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exchange-rates/latest": {
         parameters: {
             query?: never;
@@ -79,6 +99,33 @@ export interface components {
              * @enum {string}
              */
             status: "ok";
+            /**
+             * Format: date-time
+             * @description Current server time in ISO 8601 format
+             * @example 2026-04-19T12:00:00.000Z
+             */
+            timestamp: string;
+        };
+        /**
+         * ReadinessResponse
+         * @description Service readiness status with dependency checks
+         */
+        ReadinessResponse: {
+            /**
+             * @description Overall readiness status
+             * @example ready
+             * @enum {string}
+             */
+            status: "ready" | "not_ready";
+            /** @description Individual dependency check results */
+            checks: {
+                /**
+                 * @description Database connectivity status
+                 * @example ok
+                 * @enum {string}
+                 */
+                database: "ok" | "error";
+            };
             /**
              * Format: date-time
              * @description Current server time in ISO 8601 format
@@ -190,6 +237,53 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    getReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Service is ready to accept traffic */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "status": "ready",
+                     *       "checks": {
+                     *         "database": "ok"
+                     *       },
+                     *       "timestamp": "2026-04-19T12:00:00.000Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+            /** @description Service is not ready */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "status": "not_ready",
+                     *       "checks": {
+                     *         "database": "error"
+                     *       },
+                     *       "timestamp": "2026-04-19T12:00:00.000Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ReadinessResponse"];
                 };
             };
         };

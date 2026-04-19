@@ -4,6 +4,9 @@
 
 The OpenAPI 3.1 spec lives at `apps/api/openapi.yaml`. This is the **source of truth** for all HTTP endpoints.
 
+**Interactive docs:** http://localhost:3000/api/docs (ReDoc)
+**Raw spec:** http://localhost:3000/api/openapi.yaml
+
 ## Generating Types
 
 ```bash
@@ -19,6 +22,9 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Health check — returns `{ status: "ok", timestamp }` |
+| GET | `/ready` | Readiness check — verifies DB connectivity, returns 200/503 |
+| GET | `/api/docs` | Interactive API documentation (ReDoc) |
+| GET | `/api/openapi.yaml` | Raw OpenAPI 3.1 spec |
 
 ### Exchange Rates
 
