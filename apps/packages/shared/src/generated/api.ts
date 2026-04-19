@@ -11,8 +11,51 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health check */
+        /**
+         * Health check
+         * @description Returns service health status. Used by load balancers and monitoring.
+         */
         get: operations["getHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exchange-rates/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get latest exchange rates
+         * @description Returns the most recent exchange rates for a given base currency from the ECB.
+         */
+        get: operations["getLatestExchangeRates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exchange-rates/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get exchange rates for a specific date
+         * @description Returns exchange rates for a given base currency on a specific date from the ECB.
+         */
+        get: operations["getExchangeRatesByDate"];
         put?: never;
         post?: never;
         delete?: never;
@@ -25,15 +68,100 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * HealthResponse
+         * @description Service health status
+         */
         HealthResponse: {
-            /** @enum {string} */
+            /**
+             * @description Health status indicator
+             * @example ok
+             * @enum {string}
+             */
             status: "ok";
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Current server time in ISO 8601 format
+             * @example 2026-04-19T12:00:00.000Z
+             */
             timestamp: string;
+        };
+        /**
+         * ExchangeRatesResponse
+         * @description A set of exchange rates for a base currency on a given date
+         */
+        ExchangeRatesResponse: {
+            /**
+             * @description ISO 4217 base currency code
+             * @example EUR
+             */
+            base: string;
+            /**
+             * Format: date
+             * @description Date of the exchange rates (YYYY-MM-DD)
+             * @example 2026-04-17
+             */
+            date: string;
+            /** @description List of exchange rates relative to the base currency */
+            rates: components["schemas"]["Rate"][];
+        };
+        /**
+         * Rate
+         * @description A single exchange rate for a currency pair
+         */
+        Rate: {
+            /**
+             * @description ISO 4217 quote currency code
+             * @example USD
+             */
+            currency: string;
+            /**
+             * @description Exchange rate relative to the base currency
+             * @example 1.1358
+             */
+            rate: number;
+        };
+        /**
+         * ProblemDetails
+         * @description Error response following RFC 9457
+         */
+        ProblemDetails: {
+            /**
+             * Format: uri
+             * @description URI reference identifying the problem type
+             * @example https://tickerlab.dev/problems/not-found
+             */
+            type: string;
+            /**
+             * @description Short human-readable summary of the problem
+             * @example Not Found
+             */
+            title: string;
+            /**
+             * @description HTTP status code
+             * @example 404
+             */
+            status: number;
+            /**
+             * @description Human-readable explanation specific to this occurrence
+             * @example No exchange rates found for EUR on 2026-04-20
+             */
+            detail: string;
+            /**
+             * @description Machine-readable error code in SCREAMING_SNAKE_CASE
+             * @example RATES_NOT_FOUND
+             */
+            code: string;
         };
     };
     responses: never;
-    parameters: never;
+    parameters: {
+        /**
+         * @description ISO 4217 base currency code. Defaults to EUR.
+         * @example EUR
+         */
+        BaseCurrency: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -55,7 +183,105 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "status": "ok",
+                     *       "timestamp": "2026-04-19T12:00:00.000Z"
+                     *     }
+                     */
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    getLatestExchangeRates: {
+        parameters: {
+            query?: {
+                /**
+                 * @description ISO 4217 base currency code. Defaults to EUR.
+                 * @example EUR
+                 */
+                base?: components["parameters"]["BaseCurrency"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest exchange rates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "base": "EUR",
+                     *       "date": "2026-04-17",
+                     *       "rates": [
+                     *         {
+                     *           "currency": "USD",
+                     *           "rate": 1.1358
+                     *         },
+                     *         {
+                     *           "currency": "GBP",
+                     *           "rate": 0.8561
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ExchangeRatesResponse"];
+                };
+            };
+            /** @description No rates found for the given base currency */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getExchangeRatesByDate: {
+        parameters: {
+            query?: {
+                /**
+                 * @description ISO 4217 base currency code. Defaults to EUR.
+                 * @example EUR
+                 */
+                base?: components["parameters"]["BaseCurrency"];
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Date in ISO 8601 format (YYYY-MM-DD). Must be a business day.
+                 * @example 2026-04-17
+                 */
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exchange rates for the requested date */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExchangeRatesResponse"];
+                };
+            };
+            /** @description No rates found for the given date and base currency */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

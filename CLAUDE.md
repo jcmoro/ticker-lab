@@ -204,7 +204,15 @@ Follow this sequence for every task:
 * Verify OpenAPI contract when affected
 * Confirm architecture rules remain satisfied
 
-### 5. Deliver
+### 5. Update Documentation
+
+* Update `docs/changelog.md` if endpoints, schemas, or infrastructure changed
+* Update `docs/api.md` if API surface changed
+* Update `docs/architecture.md` if layers, data flow, or DB schema changed
+* Update `docs/runbook.md` if new operational procedures or troubleshooting scenarios
+* Update `README.md` if quick start, commands, or project structure changed
+
+### 6. Deliver
 
 * Provide concise summary of changes
 * Avoid unnecessary explanations

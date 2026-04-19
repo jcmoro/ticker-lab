@@ -2,6 +2,12 @@
 
 Features to consider after the MVP ticker dashboard is working.
 
+## API Documentation (ReDoc)
+- Serve interactive API docs from the OpenAPI spec using ReDoc
+- Use standalone bundle: `https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js`
+- Serve at `/api/docs` as an SSR page that loads the ReDoc bundle and points to the OpenAPI spec
+- No build step needed — single HTML page with a `<script>` tag
+
 ## Historical Data & Charts
 - Store daily snapshots in PostgreSQL
 - Recharts or Chart.js for time-series visualization

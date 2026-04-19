@@ -1,8 +1,13 @@
 openapi: 3.1.0
 info:
   title: Ticker Lab API
-  description: Financial data dashboard — exchange rates from ECB via Frankfurter
-  version: 0.1.0
+  description: |
+    Financial data dashboard API. Ingests ECB exchange rates daily via Frankfurter
+    and serves them through a REST interface. Part of the Ticker Lab experiment
+    for aggregating public financial data.
+  version: 0.2.0
+  contact:
+    name: Ticker Lab
   license:
     name: MIT
 
@@ -10,11 +15,18 @@ servers:
   - url: http://localhost:3000
     description: Local development
 
+tags:
+  - name: system
+    description: Health and operational endpoints
+  - name: exchange-rates
+    description: ECB exchange rate data via Frankfurter
+
 paths:
   /health:
     get:
       operationId: getHealth
       summary: Health check
+      description: Returns service health status. Used by load balancers and monitoring.
       tags:
         - system
       responses:
@@ -24,10 +36,90 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                timestamp: "2026-04-19T12:00:00.000Z"
+
+  /api/v1/exchange-rates/latest:
+    get:
+      operationId: getLatestExchangeRates
+      summary: Get latest exchange rates
+      description: Returns the most recent exchange rates for a given base currency from the ECB.
+      tags:
+        - exchange-rates
+      parameters:
+        - $ref: "#/components/parameters/BaseCurrency"
+      responses:
+        "200":
+          description: Latest exchange rates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExchangeRatesResponse"
+              example:
+                base: EUR
+                date: "2026-04-17"
+                rates:
+                  - currency: USD
+                    rate: 1.1358
+                  - currency: GBP
+                    rate: 0.8561
+        "404":
+          description: No rates found for the given base currency
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /api/v1/exchange-rates/{date}:
+    get:
+      operationId: getExchangeRatesByDate
+      summary: Get exchange rates for a specific date
+      description: Returns exchange rates for a given base currency on a specific date from the ECB.
+      tags:
+        - exchange-rates
+      parameters:
+        - $ref: "#/components/parameters/BaseCurrency"
+        - name: date
+          in: path
+          required: true
+          description: Date in ISO 8601 format (YYYY-MM-DD). Must be a business day.
+          schema:
+            type: string
+            format: date
+          example: "2026-04-17"
+      responses:
+        "200":
+          description: Exchange rates for the requested date
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExchangeRatesResponse"
+        "404":
+          description: No rates found for the given date and base currency
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
 
 components:
+  parameters:
+    BaseCurrency:
+      name: base
+      in: query
+      required: false
+      description: ISO 4217 base currency code. Defaults to EUR.
+      schema:
+        type: string
+        default: EUR
+        minLength: 3
+        maxLength: 3
+      example: EUR
+
   schemas:
     HealthResponse:
+      title: HealthResponse
+      description: Service health status
       type: object
       required:
         - status
@@ -35,8 +127,86 @@ components:
       properties:
         status:
           type: string
+          description: Health status indicator
           enum:
             - ok
+          example: ok
         timestamp:
           type: string
           format: date-time
+          description: Current server time in ISO 8601 format
+          example: "2026-04-19T12:00:00.000Z"
+
+    ExchangeRatesResponse:
+      title: ExchangeRatesResponse
+      description: A set of exchange rates for a base currency on a given date
+      type: object
+      required:
+        - base
+        - date
+        - rates
+      properties:
+        base:
+          type: string
+          description: ISO 4217 base currency code
+          example: EUR
+        date:
+          type: string
+          format: date
+          description: Date of the exchange rates (YYYY-MM-DD)
+          example: "2026-04-17"
+        rates:
+          type: array
+          description: List of exchange rates relative to the base currency
+          items:
+            $ref: "#/components/schemas/Rate"
+
+    Rate:
+      title: Rate
+      description: A single exchange rate for a currency pair
+      type: object
+      required:
+        - currency
+        - rate
+      properties:
+        currency:
+          type: string
+          description: ISO 4217 quote currency code
+          example: USD
+        rate:
+          type: number
+          description: Exchange rate relative to the base currency
+          example: 1.1358
+
+    ProblemDetails:
+      title: ProblemDetails
+      description: Error response following RFC 9457
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - code
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference identifying the problem type
+          example: "https://tickerlab.dev/problems/not-found"
+        title:
+          type: string
+          description: Short human-readable summary of the problem
+          example: Not Found
+        status:
+          type: integer
+          description: HTTP status code
+          example: 404
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence
+          example: No exchange rates found for EUR on 2026-04-20
+        code:
+          type: string
+          description: Machine-readable error code in SCREAMING_SNAKE_CASE
+          example: RATES_NOT_FOUND

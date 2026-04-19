@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildServer } from '../server.js';
+
+const stubDeps = {
+  getLatestRates: { execute: vi.fn().mockResolvedValue([]) },
+  getRatesByDate: { execute: vi.fn().mockResolvedValue([]) },
+};
 
 describe('GET /health', () => {
   it('returns 200 with ok status', async () => {
-    const server = await buildServer();
+    const server = await buildServer(stubDeps);
 
     const response = await server.inject({
       method: 'GET',
