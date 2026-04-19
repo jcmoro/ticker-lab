@@ -32,18 +32,22 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v1/exchange-rates/latest` | Latest exchange rates for a base currency |
-| GET | `/api/v1/exchange-rates/:date` | Exchange rates for a specific date |
-| GET | `/api/v1/exchange-rates/history` | Time series for a currency pair (`?quote=USD&from=&to=`) |
-| GET | `/api/v1/convert` | Convert between currencies (`?from=EUR&to=USD&amount=100`) |
+| GET | `/api/v1/exchange-rates/latest` | Latest rates for a base currency (`?base=EUR`) |
+| GET | `/api/v1/exchange-rates/:date` | Rates for a specific date (`?base=EUR`) |
+| GET | `/api/v1/exchange-rates/history` | Time series (`?quote=USD&from=2025-01-01&to=2026-04-17`) |
+| GET | `/api/v1/convert` | Currency converter (`?from=GBP&to=JPY&amount=1000`) |
 
-**Query parameters:**
+### SSR Pages
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `base` | string | `EUR` | ISO 4217 base currency code (3 letters) |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/` | Dashboard — 30 currencies with flags, names, links to detail |
+| GET | `/rates/:quote` | Detail — Chart.js line chart, period selector (30d/90d/180d/365d) |
+| GET | `/converter` | Interactive converter — dropdowns with flags, swap, live result |
 
-**Response format:**
+## Response Formats
+
+### Exchange rates
 
 ```json
 {
@@ -56,15 +60,35 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 }
 ```
 
-Returns an empty `rates` array if no data is available for the requested base/date.
+### History
 
-### SSR Dashboard
+```json
+{
+  "base": "EUR",
+  "quote": "USD",
+  "from": "2025-01-01",
+  "to": "2026-04-17",
+  "rates": [
+    { "date": "2025-01-02", "rate": 1.0358 },
+    { "date": "2025-01-03", "rate": 1.0412 }
+  ]
+}
+```
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | HTML dashboard showing EUR exchange rates as ticker cards |
-| GET | `/rates/:quote` | Detail page with Chart.js chart for a specific pair |
-| GET | `/converter` | Interactive currency converter |
+### Conversion
+
+```json
+{
+  "from": "GBP",
+  "to": "JPY",
+  "amount": 1000,
+  "rate": 215.770115,
+  "result": 215770.12,
+  "date": "2026-04-17"
+}
+```
+
+Cross-rates (e.g., GBP to JPY) are calculated via EUR: `rate = EUR/JPY / EUR/GBP`.
 
 ## Error Format
 
@@ -82,11 +106,14 @@ Errors follow RFC 9457 ProblemDetails (`application/problem+json`):
 
 ## Data Source
 
-Exchange rates come from the [Frankfurter API](https://frankfurter.dev), which provides ECB (European Central Bank) reference rates. Rates are updated once per business day (no weekends/holidays). Currently 29 currencies against EUR.
+Exchange rates come from the [Frankfurter API](https://frankfurter.dev), which provides ECB (European Central Bank) reference rates. Rates are updated once per business day (no weekends/holidays). 30 currencies supported (EUR + 29 quote currencies).
+
+Historical data backfilled from 2024-01-01 (~17,500 rate records).
 
 ## Conventions
 
 - All API endpoints return JSON
-- SSR routes (`/`) return HTML
+- SSR routes return HTML
 - Dates in ISO 8601 format (YYYY-MM-DD)
 - Currency codes follow ISO 4217 (3-letter uppercase)
+- Amounts rounded to 2 decimal places, rates to 6

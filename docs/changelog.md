@@ -23,6 +23,18 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — UI Polish: Light Theme & Currency Info
+
+**Summary:** Redesigned dashboard with light theme, country flags, and currency names.
+
+**Changes:**
+- Light theme: white cards, subtle borders, Inter font, blue accents
+- Each currency card shows flag emoji + full name (e.g., "US Dollar")
+- Navigation bar: Rates, Converter, API links
+- `currency-meta.ts` — metadata for 30 currencies (name, country, flag)
+
+---
+
 ## 2026-04-19 — Phase 6: Migrate to Render + Neon
 
 **Summary:** Migrated from Fly.io (7-day trial) to permanently free hosting.
