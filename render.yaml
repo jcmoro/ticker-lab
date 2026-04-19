@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: tickerlab
+    runtime: docker
+    dockerfilePath: ./docker/api/Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_PORT
+        value: "3000"
+      - key: API_HOST
+        value: "0.0.0.0"
+      - key: FRANKFURTER_BASE_URL
+        value: "https://api.frankfurter.dev"
+      - key: DATABASE_URL
+        sync: false
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - apps/**
+        - packages/**
+        - docker/**
+        - package.json
+        - pnpm-lock.yaml

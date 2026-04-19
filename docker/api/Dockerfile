@@ -28,7 +28,8 @@ COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/src/views ./dist/views
 COPY --from=builder /app/apps/api/openapi.yaml ./openapi.yaml
 COPY --from=builder /app/apps/api/drizzle ./drizzle
+COPY docker/api/entrypoint.sh ./entrypoint.sh
 
 EXPOSE 3000
 USER node
-CMD ["node", "dist/main.js"]
+CMD ["sh", "entrypoint.sh"]

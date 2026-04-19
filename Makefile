@@ -32,20 +32,12 @@ help: ## Show available targets
 	@echo "  \033[1mBuild & Deploy\033[0m"
 	@echo "  \033[36mbuild\033[0m              Build for production"
 	@echo "  \033[36mdocker-build\033[0m       Build production Docker image"
-	@echo "  \033[36mdeploy\033[0m             Deploy to Fly.io"
+	@echo "  \033[36mdeploy\033[0m             Trigger Render deploy"
 	@echo ""
-	@echo "  \033[1mFly.io Operations\033[0m"
-	@echo "  \033[36mfly-setup\033[0m          First-time Fly.io setup (app + Postgres)"
-	@echo "  \033[36mfly-up\033[0m             Start Postgres + app (wake from stopped)"
-	@echo "  \033[36mfly-status\033[0m         Show app status and machines"
-	@echo "  \033[36mfly-restart\033[0m        Restart app machines"
-	@echo "  \033[36mfly-db-restart\033[0m     Restart Postgres machine"
-	@echo "  \033[36mfly-logs\033[0m           Tail production logs"
-	@echo "  \033[36mfly-console\033[0m        Open SSH console in production"
-	@echo "  \033[36mfly-db\033[0m             Connect to production Postgres"
-	@echo "  \033[36mfly-ingest\033[0m         Run daily ingestion in production"
-	@echo "  \033[36mfly-backfill\033[0m       Backfill historical rates in production"
-	@echo "  \033[36mfly-rollback\033[0m       Show releases (pick one to rollback)"
+	@echo "  \033[1mProduction (Neon + Render)\033[0m"
+	@echo "  \033[36mprod-db\033[0m            Connect to Neon Postgres"
+	@echo "  \033[36mprod-ingest\033[0m        Run daily ingestion against production DB"
+	@echo "  \033[36mprod-backfill\033[0m      Backfill historical rates against production DB"
 	@echo ""
 
 # ─── Development ─────────────────────────────────────────────
@@ -116,53 +108,16 @@ build:
 docker-build:
 	docker build -f docker/api/Dockerfile --target prod -t ticker-lab-api .
 
-deploy:
-	fly deploy
+deploy: ## Trigger Render deploy (requires RENDER_DEPLOY_HOOK env var)
+	@curl -s -X POST "$$RENDER_DEPLOY_HOOK" && echo "Deploy triggered"
 
-# ─── Fly.io Operations ──────────────────────────────────────
+# ─── Production (Neon + Render) ──────────────────────────────
 
-fly-setup:
-	fly launch --no-deploy
-	fly postgres create --name tickerlab-db --region mad --vm-size shared-cpu-1x --volume-size 1
-	fly postgres attach tickerlab-db
-	@echo "Done. Run 'make deploy' to deploy, then 'make fly-ingest' to seed data."
+prod-db: ## Connect to Neon Postgres
+	@psql "$$DATABASE_URL"
 
-fly-up: ## Start Postgres + app (wake from stopped)
-	@echo "Starting Postgres..."
-	@fly machines list --app tickerlab-db --json | grep -q '"stopped"' \
-		&& fly machines start $$(fly machines list --app tickerlab-db --json | grep -o '"[a-f0-9]\{14\}"' | head -1 | tr -d '"') --app tickerlab-db \
-		|| echo "Postgres already running"
-	@echo "Starting app..."
-	@fly machines list --app tickerlab --json | grep -q '"stopped"' \
-		&& fly machines start $$(fly machines list --app tickerlab --json | grep -o '"[a-f0-9]\{14\}"' | head -1 | tr -d '"') --app tickerlab \
-		|| echo "App already running"
-	@echo "Done. https://tickerlab.fly.dev"
+prod-ingest: ## Run daily ingestion against production DB
+	DATABASE_URL="$$DATABASE_URL" pnpm --filter @ticker-lab/api job:ingest
 
-fly-status:
-	fly status
-
-fly-restart: ## Restart app machines
-	fly apps restart tickerlab
-
-fly-db-restart: ## Restart/start Postgres machine
-	@fly machines list --app tickerlab-db --json | grep -q '"stopped"' \
-		&& fly machines start $$(fly machines list --app tickerlab-db --json | grep -o '"[a-f0-9]\{14\}"' | head -1 | tr -d '"') --app tickerlab-db \
-		|| fly pg restart --app tickerlab-db
-
-fly-logs:
-	fly logs
-
-fly-console:
-	fly ssh console
-
-fly-db:
-	fly postgres connect -a tickerlab-db
-
-fly-ingest: ## Run daily ingestion in production
-	fly ssh console -C "node dist/infrastructure/jobs/ingest.js"
-
-fly-backfill: ## Backfill historical rates in production
-	fly ssh console -C "node dist/infrastructure/jobs/backfill.js"
-
-fly-rollback:
-	fly releases
+prod-backfill: ## Backfill historical rates against production DB
+	DATABASE_URL="$$DATABASE_URL" pnpm --filter @ticker-lab/api job:backfill
