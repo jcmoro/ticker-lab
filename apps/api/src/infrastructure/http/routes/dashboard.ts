@@ -83,7 +83,7 @@ export function dashboardRoutes(deps: DashboardDeps) {
         const data = (await res.json()) as { date: string; prices: CryptoPrice[] };
         return reply.viewAsync('pages/crypto', {
           title: 'Crypto',
-          prices: data.prices ?? [],
+          prices: sanitizeCryptoPrices(data.prices),
           date: data.date ?? 'N/A',
         });
       } catch {
@@ -112,7 +112,9 @@ export function dashboardRoutes(deps: DashboardDeps) {
             prices: { date: string; price: number }[];
           };
 
-          const coin = (latest.prices ?? []).find((p: CryptoPrice) => p.coin_id === coinId);
+          const coin = sanitizeCryptoPrices(latest.prices).find(
+            (p: CryptoPrice) => p.coin_id === coinId,
+          );
 
           return reply.viewAsync('pages/crypto-detail', {
             title: coin?.name ?? coinId,
@@ -156,4 +158,13 @@ interface CryptoPrice {
   market_cap_eur?: number;
   change_24h: number;
   date?: string;
+}
+
+function sanitizeCryptoPrices(prices: CryptoPrice[] | undefined): CryptoPrice[] {
+  return (prices ?? []).map((p) => ({
+    ...p,
+    price_eur: p.price_eur ?? 0,
+    price_usd: p.price_usd ?? 0,
+    change_24h: p.change_24h ?? 0,
+  }));
 }

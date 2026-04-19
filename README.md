@@ -13,7 +13,7 @@ Financial data dashboard that ingests public economic data daily and displays it
 | Frontend | Fastify SSR (Eta templates) + Chart.js |
 | Database | PostgreSQL 16 + Drizzle ORM |
 | Contract | OpenAPI 3.1 (source of truth) |
-| Quality | Biome + Vitest (32 tests) + go test (15 tests) = **47 tests** |
+| Quality | Biome + Vitest (35 tests) + go test (15 tests) = **50 tests** |
 | Infra | Docker (dev) + Render + Neon + GitHub Actions |
 
 **Live:**
@@ -67,14 +67,14 @@ make down            # Stop containers
 make clean           # Remove containers, volumes, node_modules
 
 # Quality
-make ci              # Run lint + typecheck + test (Node)
-make lint            # Biome linter
-make format          # Biome formatter
+make ci              # Full CI pipeline (Node + Go)
+make lint            # Biome linter (Node)
+make format          # Biome formatter (Node)
 make typecheck       # TypeScript checks
-make test            # Node tests (32)
-# Go tests:
-#   cd apps/converter-go && go test ./...   (9 tests)
-#   cd apps/crypto-go && go test ./...      (6 tests)
+make test            # Node tests (35)
+make go-vet          # go vet on all Go services
+make go-test         # go test on all Go services (15 tests)
+make go-ci           # Go quality gates (vet + test)
 
 # Database
 make db-migrate      # Run Drizzle migrations (exchange_rates)

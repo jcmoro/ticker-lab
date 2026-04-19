@@ -79,12 +79,21 @@ All commands executed via `make`. No direct `npm`/`pnpm` commands outside contai
 * `make test-unit` — unit tests only
 * `make test-functional` — functional/integration tests only
 
-### Quality
+### Quality (Node)
 
 * `make lint` — run Biome linter
 * `make format` — run Biome formatter
 * `make typecheck` — TypeScript type checking
-* `make ci` — full CI pipeline locally (lint + typecheck + test)
+
+### Quality (Go)
+
+* `make go-vet` — run `go vet` on all Go services
+* `make go-test` — run `go test` on all Go services
+* `make go-ci` — Go quality gates (vet + test)
+
+### Full CI
+
+* `make ci` — full CI pipeline (Node lint + typecheck + test + Go vet + test)
 
 ### Contracts
 

@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  quality:
-    name: Lint, Typecheck & Test
+  node:
+    name: Node — Lint, Typecheck & Test
     runs-on: ubuntu-latest
 
     services:
@@ -49,3 +49,45 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  go:
+    name: Go — Vet & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ticker
+          POSTGRES_PASSWORD: ticker
+          POSTGRES_DB: ticker_lab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ticker -d ticker_lab"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://ticker:ticker@localhost:5432/ticker_lab
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: apps/*/go.sum
+
+      - name: Vet converter-go
+        run: cd apps/converter-go && go vet ./...
+
+      - name: Vet crypto-go
+        run: cd apps/crypto-go && go vet ./...
+
+      - name: Test converter-go
+        run: cd apps/converter-go && go test ./...
+
+      - name: Test crypto-go
+        run: cd apps/crypto-go && go test ./...

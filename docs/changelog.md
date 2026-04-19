@@ -23,6 +23,32 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-20 — Go Quality Gates
+
+**Summary:** Added quality gates for Go microservices (vet + test), integrated into local `make ci` and GitHub Actions CI pipeline.
+
+**Changes:**
+- Makefile: `make go-vet`, `make go-test`, `make go-ci` targets; `make ci` now runs Node + Go gates
+- Dockerfiles: `dev` stage added to crypto-go and converter-go (Go toolchain available for vet/test)
+- docker-compose: Go services now target `dev` stage
+- GitHub Actions `ci.yml`: new `go` job (vet + test for both services, with Postgres service)
+- crypto-go: fixed test setup — `Migrate()` moved to `getTestPool()` so table exists for all integration tests
+
+**Test count:** 35 Node + 15 Go = **50 tests**
+
+---
+
+## 2026-04-20 — Fix crypto template crash on undefined numeric fields
+
+**Summary:** Fixed `TypeError: Cannot read properties of undefined (reading 'toFixed')` when the Go crypto service returns prices with missing numeric fields.
+
+**Changes:**
+- `dashboard.ts`: `sanitizeCryptoPrices()` defaults `price_eur`, `price_usd`, `change_24h` to 0
+- Templates: defensive `?? 0` guards on `.toFixed()` calls in `dashboard.eta`, `crypto.eta`, `crypto-detail.eta`
+- 3 new tests: crypto page with undefined fields, crypto detail with undefined fields, unreachable crypto service
+
+---
+
 ## 2026-04-20 — Crypto Historical Backfill
 
 **Summary:** Backfill historical crypto prices from CoinGecko market_chart API.

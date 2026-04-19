@@ -21,6 +21,10 @@ func getTestPool(t *testing.T) *pgxpool.Pool {
 	if err != nil {
 		t.Fatalf("Unable to connect to database: %v", err)
 	}
+	repo := NewRepository(pool)
+	if err := repo.Migrate(context.Background()); err != nil {
+		t.Fatalf("migrate failed: %v", err)
+	}
 	t.Cleanup(func() { pool.Close() })
 	return pool
 }
@@ -172,10 +176,6 @@ func TestCorsMiddleware(t *testing.T) {
 func TestSaveAndFindLatest(t *testing.T) {
 	pool := getTestPool(t)
 	repo := NewRepository(pool)
-
-	if err := repo.Migrate(context.Background()); err != nil {
-		t.Fatalf("migrate failed: %v", err)
-	}
 
 	prices := []CryptoPrice{
 		{CoinID: "test-coin", Symbol: "TST", Name: "Test Coin", PriceEUR: 123.45, PriceUSD: 145.67, MarketCap: 1000000, Change24h: 2.5, Date: "2026-04-19"},

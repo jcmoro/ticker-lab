@@ -1,4 +1,4 @@
-.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci db-migrate db-seed openapi-generate job-ingest docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
+.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
 
 .DEFAULT_GOAL := help
 
@@ -11,10 +11,13 @@ help: ## Show available targets
 	@echo "  \033[36mclean\033[0m              Remove containers, volumes, and node_modules"
 	@echo ""
 	@echo "  \033[1mQuality\033[0m"
-	@echo "  \033[36mlint\033[0m               Run Biome linter"
-	@echo "  \033[36mformat\033[0m             Run Biome formatter"
+	@echo "  \033[36mlint\033[0m               Run Biome linter (Node)"
+	@echo "  \033[36mformat\033[0m             Run Biome formatter (Node)"
 	@echo "  \033[36mtypecheck\033[0m          TypeScript type checking"
-	@echo "  \033[36mci\033[0m                 Run full CI pipeline (lint + typecheck + test)"
+	@echo "  \033[36mgo-vet\033[0m             Run go vet on all Go services"
+	@echo "  \033[36mgo-test\033[0m            Run go test on all Go services"
+	@echo "  \033[36mgo-ci\033[0m              Go quality gates (vet + test)"
+	@echo "  \033[36mci\033[0m                 Full CI pipeline (Node + Go)"
 	@echo ""
 	@echo "  \033[1mTesting\033[0m"
 	@echo "  \033[36mtest\033[0m               Run all tests"
@@ -71,7 +74,17 @@ format:
 typecheck:
 	docker compose run --rm api pnpm typecheck
 
-ci: lint typecheck test
+go-vet:
+	docker compose run --rm converter-go go vet ./...
+	docker compose run --rm crypto-go go vet ./...
+
+go-test:
+	docker compose run --rm converter-go go test ./...
+	docker compose run --rm crypto-go go test ./...
+
+go-ci: go-vet go-test
+
+ci: lint typecheck test go-ci
 
 # ─── Testing ─────────────────────────────────────────────────
 

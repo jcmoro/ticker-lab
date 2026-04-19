@@ -24,6 +24,7 @@ services:
     build:
       context: .
       dockerfile: docker/crypto-go/Dockerfile
+      target: dev
     ports:
       - "8090:8090"
     environment:
@@ -37,6 +38,7 @@ services:
     build:
       context: .
       dockerfile: docker/converter-go/Dockerfile
+      target: dev
     ports:
       - "8080:8080"
     environment:
