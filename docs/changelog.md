@@ -4,6 +4,25 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-19 — Phase 9: Currency Converter
+
+**Summary:** Convert between any two of the 30 supported currencies using ECB rates. Supports cross-rates via EUR.
+
+**Endpoints added:**
+- `GET /api/v1/convert?from=EUR&to=USD&amount=100` — currency conversion
+
+**Pages added:**
+- `GET /converter` — interactive converter with dropdowns (30 currencies with flags), swap button, live result
+- Navigation bar added to layout (Rates, Converter, API)
+
+**Other:**
+- `ConvertCurrency` use case with cross-rate calculation (e.g., GBP to JPY via EUR)
+- OpenAPI spec v0.6.0 with ConversionResponse schema
+- 32 tests (6 new: converter use case + endpoint)
+- Feature noted for future reimplementation in Go as a separate microservice
+
+---
+
 ## 2026-04-19 — Phase 6: Migrate to Render + Neon
 
 **Summary:** Migrated from Fly.io (7-day trial) to permanently free hosting.

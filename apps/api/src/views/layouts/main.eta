@@ -24,6 +24,9 @@
     }
     header h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
     header span { color: #64748b; font-size: 0.875rem; }
+    nav { margin-left: auto; display: flex; gap: 1rem; }
+    nav a { color: #64748b; text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+    nav a:hover { color: #3b82f6; }
     main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,8 +34,13 @@
 </head>
 <body>
   <header>
-    <h1>Ticker Lab</h1>
+    <h1><a href="/" style="color: inherit; text-decoration: none;">Ticker Lab</a></h1>
     <span>Exchange Rates Dashboard</span>
+    <nav>
+      <a href="/">Rates</a>
+      <a href="/converter">Converter</a>
+      <a href="/api/docs">API</a>
+    </nav>
   </header>
   <main>
     <%~ it.body %>

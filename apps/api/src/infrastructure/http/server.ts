@@ -4,6 +4,7 @@ import view from '@fastify/view';
 import { Eta } from 'eta';
 import Fastify from 'fastify';
 import type { Sql } from 'postgres';
+import type { ConversionResult } from '../../application/exchange-rate/ConvertCurrency.js';
 import type { ExchangeRate } from '../../domain/exchange-rate/ExchangeRate.js';
 import type { HistoryPoint } from '../../domain/exchange-rate/ExchangeRateRepository.js';
 import { errorHandler } from './error-handler.js';
@@ -21,6 +22,9 @@ export interface ServerDependencies {
   getRatesByDate: { execute(baseCurrency: string, date: string): Promise<ExchangeRate[]> };
   getRateHistory: {
     execute(base: string, quote: string, from: string, to: string): Promise<HistoryPoint[]>;
+  };
+  convertCurrency: {
+    execute(from: string, to: string, amount: number): Promise<ConversionResult | null>;
   };
   db?: Sql;
 }

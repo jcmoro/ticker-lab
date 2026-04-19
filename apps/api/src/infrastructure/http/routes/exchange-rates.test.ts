@@ -17,6 +17,16 @@ const stubDeps = {
   getLatestRates: { execute: vi.fn().mockResolvedValue(sampleRates) },
   getRatesByDate: { execute: vi.fn().mockResolvedValue(sampleRates) },
   getRateHistory: { execute: vi.fn().mockResolvedValue(sampleHistory) },
+  convertCurrency: {
+    execute: vi.fn().mockResolvedValue({
+      from: 'EUR',
+      to: 'USD',
+      amount: 100,
+      rate: 1.1358,
+      result: 113.58,
+      date: '2026-04-17',
+    }),
+  },
 };
 
 describe('Exchange Rates API', () => {

@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { ConvertCurrency } from './application/exchange-rate/ConvertCurrency.js';
 import { GetLatestRates } from './application/exchange-rate/GetLatestRates.js';
 import { GetRateHistory } from './application/exchange-rate/GetRateHistory.js';
 import { GetRatesByDate } from './application/exchange-rate/GetRatesByDate.js';
@@ -24,9 +25,16 @@ const start = async (): Promise<void> => {
   const getLatestRates = new GetLatestRates(exchangeRateRepository);
   const getRatesByDate = new GetRatesByDate(exchangeRateRepository);
   const getRateHistory = new GetRateHistory(exchangeRateRepository);
+  const convertCurrency = new ConvertCurrency(exchangeRateRepository);
 
   // Server
-  const server = await buildServer({ getLatestRates, getRatesByDate, getRateHistory, db: client });
+  const server = await buildServer({
+    getLatestRates,
+    getRatesByDate,
+    getRateHistory,
+    convertCurrency,
+    db: client,
+  });
 
   const port = Number(process.env.API_PORT ?? 3000);
   const host = process.env.API_HOST ?? '0.0.0.0';

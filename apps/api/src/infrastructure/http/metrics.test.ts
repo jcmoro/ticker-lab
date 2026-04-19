@@ -5,6 +5,7 @@ const stubDeps = {
   getLatestRates: { execute: vi.fn().mockResolvedValue([]) },
   getRatesByDate: { execute: vi.fn().mockResolvedValue([]) },
   getRateHistory: { execute: vi.fn().mockResolvedValue([]) },
+  convertCurrency: { execute: vi.fn().mockResolvedValue(null) },
 };
 
 describe('GET /metrics', () => {

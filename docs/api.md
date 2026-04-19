@@ -35,6 +35,7 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 | GET | `/api/v1/exchange-rates/latest` | Latest exchange rates for a base currency |
 | GET | `/api/v1/exchange-rates/:date` | Exchange rates for a specific date |
 | GET | `/api/v1/exchange-rates/history` | Time series for a currency pair (`?quote=USD&from=&to=`) |
+| GET | `/api/v1/convert` | Convert between currencies (`?from=EUR&to=USD&amount=100`) |
 
 **Query parameters:**
 
@@ -63,6 +64,7 @@ Returns an empty `rates` array if no data is available for the requested base/da
 |--------|------|-------------|
 | GET | `/` | HTML dashboard showing EUR exchange rates as ticker cards |
 | GET | `/rates/:quote` | Detail page with Chart.js chart for a specific pair |
+| GET | `/converter` | Interactive currency converter |
 
 ## Error Format
 

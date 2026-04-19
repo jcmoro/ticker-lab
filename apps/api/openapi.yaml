@@ -5,7 +5,7 @@ info:
     Financial data dashboard API. Ingests ECB exchange rates daily via Frankfurter
     and serves them through a REST interface. Part of the Ticker Lab experiment
     for aggregating public financial data.
-  version: 0.5.0
+  version: 0.6.0
   contact:
     name: Ticker Lab
   license:
@@ -133,6 +133,56 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /api/v1/convert:
+    get:
+      operationId: convertCurrency
+      summary: Convert between currencies
+      description: Converts an amount from one currency to another using the latest ECB rates. Supports cross-rates via EUR (e.g., GBP to JPY).
+      tags:
+        - exchange-rates
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Source currency (ISO 4217)
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+          example: EUR
+        - name: to
+          in: query
+          required: true
+          description: Target currency (ISO 4217)
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+          example: USD
+        - name: amount
+          in: query
+          required: false
+          description: Amount to convert. Defaults to 1.
+          schema:
+            type: number
+            default: 1
+            minimum: 0
+          example: 100
+      responses:
+        "200":
+          description: Conversion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversionResponse"
+              example:
+                from: EUR
+                to: USD
+                amount: 100
+                rate: 1.1797
+                result: 117.97
+                date: "2026-04-17"
+
   /api/v1/exchange-rates/history:
     get:
       operationId: getExchangeRateHistory
@@ -219,6 +269,44 @@ components:
           format: date-time
           description: Current server time in ISO 8601 format
           example: "2026-04-19T12:00:00.000Z"
+
+    ConversionResponse:
+      title: ConversionResponse
+      description: Result of a currency conversion
+      type: object
+      required:
+        - from
+        - to
+        - amount
+        - rate
+        - result
+        - date
+      properties:
+        from:
+          type: string
+          description: Source currency code
+          example: EUR
+        to:
+          type: string
+          description: Target currency code
+          example: USD
+        amount:
+          type: number
+          description: Original amount
+          example: 100
+        rate:
+          type: number
+          description: Exchange rate applied (from → to)
+          example: 1.1797
+        result:
+          type: number
+          description: Converted amount
+          example: 117.97
+        date:
+          type: string
+          format: date
+          description: Date of the rates used
+          example: "2026-04-17"
 
     HistoryResponse:
       title: HistoryResponse

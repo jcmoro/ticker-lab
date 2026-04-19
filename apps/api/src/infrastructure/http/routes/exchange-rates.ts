@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { ConversionResult } from '../../../application/exchange-rate/ConvertCurrency.js';
 import type { ExchangeRate } from '../../../domain/exchange-rate/ExchangeRate.js';
 import type { HistoryPoint } from '../../../domain/exchange-rate/ExchangeRateRepository.js';
 
@@ -6,12 +7,10 @@ interface ExchangeRatesDeps {
   getLatestRates: { execute(baseCurrency: string): Promise<ExchangeRate[]> };
   getRatesByDate: { execute(baseCurrency: string, date: string): Promise<ExchangeRate[]> };
   getRateHistory: {
-    execute(
-      baseCurrency: string,
-      quoteCurrency: string,
-      from: string,
-      to: string,
-    ): Promise<HistoryPoint[]>;
+    execute(base: string, quote: string, from: string, to: string): Promise<HistoryPoint[]>;
+  };
+  convertCurrency: {
+    execute(from: string, to: string, amount: number): Promise<ConversionResult | null>;
   };
 }
 
@@ -65,6 +64,46 @@ export function exchangeRateRoutes(deps: ExchangeRatesDeps) {
       const rates = await deps.getRateHistory.execute(base, quote.toUpperCase(), from, to);
 
       return { base, quote: quote.toUpperCase(), from, to, rates };
+    });
+
+    server.get('/api/v1/convert', async (request, reply) => {
+      const {
+        from,
+        to,
+        amount = '1',
+      } = request.query as {
+        from?: string;
+        to?: string;
+        amount?: string;
+      };
+
+      if (!from || !to) {
+        return reply.status(400).send({
+          type: 'https://tickerlab.dev/problems/bad-request',
+          title: 'Bad Request',
+          status: 400,
+          detail: 'Both "from" and "to" query parameters are required',
+          code: 'MISSING_PARAMETERS',
+        });
+      }
+
+      const result = await deps.convertCurrency.execute(
+        from.toUpperCase(),
+        to.toUpperCase(),
+        Number(amount) || 1,
+      );
+
+      if (!result) {
+        return reply.status(404).send({
+          type: 'https://tickerlab.dev/problems/not-found',
+          title: 'Not Found',
+          status: 404,
+          detail: `Cannot convert ${from.toUpperCase()} to ${to.toUpperCase()}. Currency not available.`,
+          code: 'CURRENCY_NOT_FOUND',
+        });
+      }
+
+      return result;
     });
 
     server.get<{ Params: { date: string } }>('/api/v1/exchange-rates/:date', async (request) => {

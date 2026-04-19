@@ -17,6 +17,7 @@ const stubDeps = {
       { date: '2026-04-17', rate: 1.1358 },
     ]),
   },
+  convertCurrency: { execute: vi.fn().mockResolvedValue(null) },
 };
 
 describe('GET / (dashboard)', () => {

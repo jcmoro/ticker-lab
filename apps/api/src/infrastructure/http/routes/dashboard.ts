@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ExchangeRate } from '../../../domain/exchange-rate/ExchangeRate.js';
 import type { HistoryPoint } from '../../../domain/exchange-rate/ExchangeRateRepository.js';
-import { enrichRates, getCurrencyMeta } from '../currency-meta.js';
+import { enrichRates, getAllCurrencies, getCurrencyMeta } from '../currency-meta.js';
 
 interface DashboardDeps {
   getLatestRates: { execute(baseCurrency: string): Promise<ExchangeRate[]> };
@@ -65,5 +65,12 @@ export function dashboardRoutes(deps: DashboardDeps) {
         });
       },
     );
+
+    server.get('/converter', async (_request: FastifyRequest, reply: FastifyReply) => {
+      return reply.viewAsync('pages/converter', {
+        title: 'Currency Converter',
+        currencies: getAllCurrencies(),
+      });
+    });
   };
 }

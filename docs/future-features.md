@@ -33,6 +33,14 @@ Items marked ~~strikethrough~~ are already implemented.
 - Widget in dashboard with input fields
 - Cross-rate calculation (e.g., GBP→JPY via EUR)
 
+## Phase 9b — Currency Converter in Go (microservice)
+- Reimplement the converter as a standalone Go microservice
+- Reads from the same Neon Postgres (or consumes the Ticker Lab REST API)
+- Validates polyglot architecture: same DB, different runtimes
+- Go chi or stdlib router, minimal dependencies
+- Separate Docker container, own Render service
+- Interesting experiment: compare Node vs Go for the same use case
+
 ## Phase 10 — Macro Indicators (FRED / ECB)
 - Third bounded context: `macro`
 - FRED API (free key): US interest rates, CPI, unemployment, GDP

@@ -43,6 +43,12 @@ export function getCurrencyMeta(code: string): CurrencyInfo {
   return currencies[code] ?? fallback;
 }
 
+export function getAllCurrencies(): Array<{ code: string } & CurrencyInfo> {
+  return Object.entries(currencies)
+    .map(([code, info]) => ({ code, ...info }))
+    .sort((a, b) => a.code.localeCompare(b.code));
+}
+
 export function enrichRates(rates: { currency: string; rate: number }[]) {
   return rates.map((r) => ({
     ...r,
