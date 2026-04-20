@@ -16,7 +16,23 @@
       </div>
     </div>
     <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
-    <script>setTimeout(function() { location.reload(); }, 10000);</script>
+    <script>
+      (function() {
+        var url = '<%= it.cryptoBaseUrl %>/health';
+        var attempts = 0;
+        var maxAttempts = 10;
+        function ping() {
+          attempts++;
+          fetch(url).then(function(r) {
+            if (r.ok) location.reload();
+            else if (attempts < maxAttempts) setTimeout(ping, 5000);
+          }).catch(function() {
+            if (attempts < maxAttempts) setTimeout(ping, 5000);
+          });
+        }
+        ping();
+      })();
+    </script>
   <% } else { %>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem;">
       <% it.prices.forEach(function(p) { %>

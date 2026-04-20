@@ -105,6 +105,7 @@ export function dashboardRoutes(deps: DashboardDeps) {
           title: 'Crypto',
           prices: [],
           date: 'N/A',
+          cryptoBaseUrl,
         });
       }
     });
