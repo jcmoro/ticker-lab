@@ -21,8 +21,41 @@ func getTestPool(t *testing.T) *pgxpool.Pool {
 	if err != nil {
 		t.Fatalf("Unable to connect to database: %v", err)
 	}
+	seedTestRates(t, pool)
 	t.Cleanup(func() { pool.Close() })
 	return pool
+}
+
+func seedTestRates(t *testing.T, pool *pgxpool.Pool) {
+	t.Helper()
+	ctx := context.Background()
+
+	_, err := pool.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS exchange_rates (
+			id SERIAL PRIMARY KEY,
+			base_currency VARCHAR(3) NOT NULL,
+			quote_currency VARCHAR(3) NOT NULL,
+			rate NUMERIC(16,6) NOT NULL,
+			date DATE NOT NULL,
+			created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+			UNIQUE(base_currency, quote_currency, date)
+		)
+	`)
+	if err != nil {
+		t.Fatalf("failed to create exchange_rates table: %v", err)
+	}
+
+	_, err = pool.Exec(ctx, `
+		INSERT INTO exchange_rates (base_currency, quote_currency, rate, date)
+		VALUES
+			('EUR', 'USD', 1.1358, '2026-04-17'),
+			('EUR', 'GBP', 0.8561, '2026-04-17'),
+			('EUR', 'JPY', 162.45, '2026-04-17')
+		ON CONFLICT (base_currency, quote_currency, date) DO NOTHING
+	`)
+	if err != nil {
+		t.Fatalf("failed to seed test rates: %v", err)
+	}
 }
 
 func TestHealthEndpoint(t *testing.T) {
