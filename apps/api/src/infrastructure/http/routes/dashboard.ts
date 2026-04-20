@@ -10,8 +10,8 @@ interface DashboardDeps {
   };
 }
 
-const RETRY_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 2000;
+const RETRY_ATTEMPTS = 5;
+const RETRY_DELAY_MS = 5000;
 
 async function fetchWithRetry(url: string): Promise<Response> {
   for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {

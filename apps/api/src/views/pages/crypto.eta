@@ -10,8 +10,13 @@
 
   <% if (it.prices.length === 0) { %>
     <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; text-align: center;">
-      <p style="color: #64748b;">Crypto service is waking up or unavailable. Try refreshing in a few seconds.</p>
+      <p style="color: #64748b;">Crypto service is waking up. Retrying automatically&hellip;</p>
+      <div style="margin-top: 1rem;">
+        <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: #8b5cf6; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      </div>
     </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    <script>setTimeout(function() { location.reload(); }, 10000);</script>
   <% } else { %>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem;">
       <% it.prices.forEach(function(p) { %>

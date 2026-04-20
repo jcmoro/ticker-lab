@@ -70,9 +70,9 @@ func (r *Repository) Save(ctx context.Context, prices []CryptoPrice) error {
 
 	b.WriteString(` ON CONFLICT (coin_id, date) DO UPDATE SET
 		price_eur = EXCLUDED.price_eur,
-		price_usd = EXCLUDED.price_usd,
-		market_cap_eur = EXCLUDED.market_cap_eur,
-		change_24h = EXCLUDED.change_24h`)
+		price_usd = CASE WHEN EXCLUDED.price_usd > 0 THEN EXCLUDED.price_usd ELSE crypto_prices.price_usd END,
+		market_cap_eur = CASE WHEN EXCLUDED.market_cap_eur > 0 THEN EXCLUDED.market_cap_eur ELSE crypto_prices.market_cap_eur END,
+		change_24h = CASE WHEN EXCLUDED.change_24h != 0 THEN EXCLUDED.change_24h ELSE crypto_prices.change_24h END`)
 
 	_, err := r.pool.Exec(ctx, b.String(), args...)
 	return err
