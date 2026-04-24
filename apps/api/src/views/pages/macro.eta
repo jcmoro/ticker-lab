@@ -52,15 +52,15 @@
                   <div style="font-weight: 600; font-size: 0.875rem; color: #0f172a;"><%= ind.name %></div>
                   <div style="font-size: 0.7rem; color: #94a3b8;"><%= ind.source.toUpperCase() %> &middot; <%= ind.frequency %></div>
                 </div>
-                <% if (ind.change !== 0 && ind.latest_value !== 0) { %>
-                  <div style="font-size: 0.75rem; font-weight: 500; padding: 0.15rem 0.4rem; border-radius: 4px; <%= ind.change >= 0 ? 'color: #16a34a; background: #f0fdf4;' : 'color: #dc2626; background: #fef2f2;' %>">
-                    <%= ind.change >= 0 ? '+' : '' %><%= ind.change.toFixed(2) %>
+                <% if ((ind.change ?? 0) !== 0 && (ind.latest_value ?? 0) !== 0) { %>
+                  <div style="font-size: 0.75rem; font-weight: 500; padding: 0.15rem 0.4rem; border-radius: 4px; <%= (ind.change ?? 0) >= 0 ? 'color: #16a34a; background: #f0fdf4;' : 'color: #dc2626; background: #fef2f2;' %>">
+                    <%= (ind.change ?? 0) >= 0 ? '+' : '' %><%= (ind.change ?? 0).toFixed(2) %>
                   </div>
                 <% } %>
               </div>
-              <% if (ind.latest_value !== 0) { %>
+              <% if ((ind.latest_value ?? 0) !== 0) { %>
                 <div style="font-size: 1.25rem; font-weight: 700; color: #0f172a;">
-                  <%= ind.latest_value.toLocaleString(undefined, { maximumFractionDigits: ind.unit === 'percent' ? 2 : 1 }) %><% if (ind.unit === 'percent') { %>%<% } %>
+                  <%= (ind.latest_value ?? 0).toLocaleString(undefined, { maximumFractionDigits: ind.unit === 'percent' ? 2 : 1 }) %><% if (ind.unit === 'percent') { %>%<% } %>
                 </div>
                 <div style="font-size: 0.75rem; color: #94a3b8;">
                   <%= ind.latest_date %>
