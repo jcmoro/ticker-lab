@@ -35,8 +35,8 @@
     </script>
   <% } else { %>
     <% var categories = {}; it.indicators.forEach(function(ind) { if (!categories[ind.category]) categories[ind.category] = []; categories[ind.category].push(ind); }); %>
-    <% var catLabels = { inflation: 'Inflation', employment: 'Employment', interest_rates: 'Interest Rates', gdp: 'GDP & Growth' }; %>
-    <% var catColors = { inflation: '#ef4444', employment: '#3b82f6', interest_rates: '#10b981', gdp: '#f59e0b' }; %>
+    <% var catLabels = { inflation: 'Inflation', employment: 'Employment', interest_rates: 'Interest Rates', gdp: 'GDP & Growth', monetary: 'Monetary', markets: 'Markets & Risk', commodities: 'Commodities', housing: 'Housing', consumer: 'Consumer', production: 'Production' }; %>
+    <% var catColors = { inflation: '#ef4444', employment: '#3b82f6', interest_rates: '#10b981', gdp: '#f59e0b', monetary: '#8b5cf6', markets: '#ec4899', commodities: '#d97706', housing: '#06b6d4', consumer: '#14b8a6', production: '#6366f1' }; %>
 
     <% Object.keys(categories).forEach(function(cat) { %>
       <div style="margin-bottom: 2rem;">

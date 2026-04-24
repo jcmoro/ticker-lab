@@ -64,9 +64,21 @@ var fredSeries = []SeriesMeta{
 	{Source: "fred", SeriesID: "DGS2", Name: "2-Year Treasury Yield", Freq: "daily", Unit: "percent", Category: "interest_rates"},
 	{Source: "fred", SeriesID: "T10Y2Y", Name: "10Y-2Y Treasury Spread", Freq: "daily", Unit: "percent", Category: "interest_rates"},
 	{Source: "fred", SeriesID: "PCEPI", Name: "PCE Price Index", Freq: "monthly", Unit: "index", Category: "inflation"},
+	{Source: "fred", SeriesID: "CPILFESL", Name: "Core CPI (ex Food & Energy)", Freq: "monthly", Unit: "index", Category: "inflation"},
 	{Source: "fred", SeriesID: "PAYEMS", Name: "Nonfarm Payrolls", Freq: "monthly", Unit: "thousands", Category: "employment"},
+	{Source: "fred", SeriesID: "JTSJOL", Name: "Job Openings (JOLTS)", Freq: "monthly", Unit: "thousands", Category: "employment"},
 	{Source: "fred", SeriesID: "M2SL", Name: "M2 Money Supply", Freq: "monthly", Unit: "billions_usd", Category: "monetary"},
+	// Tier 3 — Markets & Risk
+	{Source: "fred", SeriesID: "VIXCLS", Name: "VIX Volatility Index", Freq: "daily", Unit: "index", Category: "markets"},
+	{Source: "fred", SeriesID: "BAMLH0A0HYM2", Name: "High Yield Bond Spread", Freq: "daily", Unit: "percent", Category: "markets"},
+	{Source: "fred", SeriesID: "DCOILWTICO", Name: "WTI Crude Oil", Freq: "daily", Unit: "usd_barrel", Category: "commodities"},
+	{Source: "fred", SeriesID: "GOLDAMGBD228NLBM", Name: "Gold Price (London)", Freq: "daily", Unit: "usd_oz", Category: "commodities"},
+	// Tier 3 — Consumer & Housing
 	{Source: "fred", SeriesID: "CSUSHPINSA", Name: "Case-Shiller Home Price Index", Freq: "monthly", Unit: "index", Category: "housing"},
+	{Source: "fred", SeriesID: "MORTGAGE30US", Name: "30-Year Mortgage Rate", Freq: "weekly", Unit: "percent", Category: "housing"},
+	{Source: "fred", SeriesID: "UMCSENT", Name: "Consumer Sentiment (UMich)", Freq: "monthly", Unit: "index", Category: "consumer"},
+	{Source: "fred", SeriesID: "RSAFS", Name: "Retail Sales", Freq: "monthly", Unit: "millions_usd", Category: "consumer"},
+	{Source: "fred", SeriesID: "INDPRO", Name: "Industrial Production Index", Freq: "monthly", Unit: "index", Category: "production"},
 }
 
 // ECB series

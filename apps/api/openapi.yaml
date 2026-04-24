@@ -3,9 +3,10 @@ info:
   title: Ticker Lab API
   description: |
     Financial data dashboard API. Polyglot architecture experiment with Node.js and Go
-    microservices. Ingests ECB exchange rates and crypto prices from public APIs.
-    Exchange rates served by Node.js (Fastify), crypto and converter by Go (stdlib).
-  version: 0.7.0
+    microservices. Ingests ECB exchange rates, crypto prices, and macro economic indicators
+    from public APIs. Exchange rates served by Node.js (Fastify); crypto, macro, and
+    converter by Go (stdlib).
+  version: 0.8.0
   contact:
     name: Ticker Lab
   license:
@@ -18,6 +19,8 @@ servers:
     description: Local development (Go converter)
   - url: http://localhost:8090
     description: Local development (Go crypto)
+  - url: http://localhost:8110
+    description: Local development (Go macro)
 
 tags:
   - name: system
@@ -26,6 +29,8 @@ tags:
     description: ECB exchange rate data via Frankfurter (Node.js)
   - name: crypto
     description: Crypto prices via CoinGecko (Go)
+  - name: macro
+    description: Macro economic indicators via FRED and ECB (Go)
 
 paths:
   /health:
@@ -283,6 +288,101 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CryptoHistoryResponse"
+
+  /api/v1/macro/indicators:
+    get:
+      operationId: getMacroIndicators
+      summary: Get macro economic indicators
+      description: Returns all tracked macro indicators with their latest value, previous value, and change. Optionally filter by category. Served by the Go macro microservice. Sources are FRED (US) and ECB (Eurozone).
+      tags:
+        - macro
+      parameters:
+        - name: category
+          in: query
+          required: false
+          description: Filter by category. Available categories are inflation, employment, interest_rates, gdp, monetary, housing.
+          schema:
+            type: string
+            enum:
+              - inflation
+              - employment
+              - interest_rates
+              - gdp
+              - monetary
+              - housing
+          example: inflation
+      responses:
+        "200":
+          description: List of macro indicators with latest values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MacroIndicatorsResponse"
+              example:
+                count: 14
+                indicators:
+                  - source: fred
+                    series_id: CPIAUCSL
+                    name: "CPI (All Urban Consumers)"
+                    category: inflation
+                    unit: index
+                    frequency: monthly
+                    latest_value: 330.29
+                    latest_date: "2026-03-01"
+                    prev_value: 327.46
+                    change: 2.83
+
+  /api/v1/macro/{source}/{id}/history:
+    get:
+      operationId: getMacroHistory
+      summary: Get macro indicator history
+      description: Returns historical data points for a macro indicator. Served by the Go macro microservice.
+      tags:
+        - macro
+      parameters:
+        - name: source
+          in: path
+          required: true
+          description: Data source identifier (fred or ecb)
+          schema:
+            type: string
+            enum:
+              - fred
+              - ecb
+          example: fred
+        - name: id
+          in: path
+          required: true
+          description: Series identifier (e.g., CPIAUCSL, UNRATE, ICP, FM_MRR)
+          schema:
+            type: string
+          example: CPIAUCSL
+        - name: days
+          in: query
+          required: false
+          description: Number of days of history. Defaults to 365.
+          schema:
+            type: integer
+            default: 365
+          example: 365
+      responses:
+        "200":
+          description: Macro indicator history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MacroHistoryResponse"
+              example:
+                source: fred
+                series_id: CPIAUCSL
+                name: "CPI (All Urban Consumers)"
+                days: 365
+                count: 12
+                points:
+                  - date: "2025-04-01"
+                    value: 314.069
+                  - date: "2025-05-01"
+                    value: 314.927
 
   /api/v1/exchange-rates/history:
     get:
@@ -651,6 +751,148 @@ components:
           type: number
           description: Price in EUR
           example: 58234.12
+
+    MacroIndicatorsResponse:
+      title: MacroIndicatorsResponse
+      description: List of macro economic indicators with latest values
+      type: object
+      required:
+        - count
+        - indicators
+      properties:
+        count:
+          type: integer
+          description: Number of indicators returned
+          example: 14
+        indicators:
+          type: array
+          items:
+            $ref: "#/components/schemas/MacroIndicator"
+
+    MacroIndicator:
+      title: MacroIndicator
+      description: A macro economic indicator with its latest and previous values
+      type: object
+      required:
+        - source
+        - series_id
+        - name
+        - category
+        - unit
+        - frequency
+        - latest_value
+        - latest_date
+      properties:
+        source:
+          type: string
+          description: Data source (fred or ecb)
+          enum:
+            - fred
+            - ecb
+          example: fred
+        series_id:
+          type: string
+          description: Series identifier
+          example: CPIAUCSL
+        name:
+          type: string
+          description: Human-readable series name
+          example: "CPI (All Urban Consumers)"
+        category:
+          type: string
+          description: Indicator category for grouping
+          enum:
+            - inflation
+            - employment
+            - interest_rates
+            - gdp
+            - monetary
+            - housing
+          example: inflation
+        unit:
+          type: string
+          description: Unit of measurement
+          example: index
+        frequency:
+          type: string
+          description: Data frequency
+          enum:
+            - daily
+            - monthly
+            - quarterly
+          example: monthly
+        latest_value:
+          type: number
+          description: Most recent observation value
+          example: 330.29
+        latest_date:
+          type: string
+          format: date
+          description: Date of the most recent observation
+          example: "2026-03-01"
+        prev_value:
+          type: number
+          description: Previous observation value (for calculating change)
+          example: 327.46
+        change:
+          type: number
+          description: Difference between latest and previous value
+          example: 2.83
+
+    MacroHistoryResponse:
+      title: MacroHistoryResponse
+      description: Historical data points for a macro indicator
+      type: object
+      required:
+        - source
+        - series_id
+        - name
+        - days
+        - count
+        - points
+      properties:
+        source:
+          type: string
+          description: Data source (fred or ecb)
+          example: fred
+        series_id:
+          type: string
+          description: Series identifier
+          example: CPIAUCSL
+        name:
+          type: string
+          description: Human-readable series name
+          example: "CPI (All Urban Consumers)"
+        days:
+          type: integer
+          description: Number of days requested
+          example: 365
+        count:
+          type: integer
+          description: Number of data points returned
+          example: 12
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/MacroHistoryPoint"
+
+    MacroHistoryPoint:
+      title: MacroHistoryPoint
+      description: A single data point in a macro indicator time series
+      type: object
+      required:
+        - date
+        - value
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date of the observation
+          example: "2025-04-01"
+        value:
+          type: number
+          description: Observation value
+          example: 314.069
 
     ProblemDetails:
       title: ProblemDetails

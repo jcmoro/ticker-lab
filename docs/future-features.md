@@ -352,16 +352,44 @@ models, repository, handlers, main, `fred.go` con cliente FRED. Solo series FRED
 **Fase 3 — Dashboard SSR:**
 Rutas en dashboard.ts, templates macro.eta y macro-detail.eta (con Chart.js), navegación. Validar: `make ci`.
 
-**Fase 4 — Tier 2 + CI/CD + Docs:**
-Ampliar con series Tier 2, GitHub Actions, changelog, architecture docs. Validar: CI green.
+**Fase 4 — Tier 2/3 + CI/CD + Docs:**
+Ampliar con series Tier 2/3 (24 FRED + 3 ECB = 27 total), GitHub Actions, changelog, architecture docs. Validar: CI green.
 
-## Phase 12 — Alerts
+**Pendiente — Investigar series ECB adicionales:**
+- Eurozone unemployment rate (Eurostat integration)
+- M3 Money Supply (BSI dataflow)
+- Eurozone GDP (MNA / JDF_MNA_* dataflows)
+- Requiere investigar las keys exactas de cada dataflow ECB
+
+## Phase 12 — Spanish Financial Data (Banco de España + Twelve Data)
+
+### Banco de España Statistics API
+- API pública, sin autenticación, JSON
+- Base URL: `https://app.bde.es/bierest/resources/srdatosapp/`
+- Docs: https://www.bde.es/webbe/en/estadisticas/recursos/api-estadisticas-bde.html
+- Series relevantes: Euribor, tipos hipotecarios, deuda pública española, IPC España, crédito/morosidad bancaria
+- Endpoints: `favoritas` (último dato) y `listaSeries` (histórico con rango)
+- Requiere investigar códigos de series (formato `D_XXXXXXX`)
+
+### Twelve Data — IBEX 35 + Acciones españolas
+- Free tier: 800 créditos/día, API key gratuita
+- Tiene el índice IBEX 35 (`IBEX:INDEXBME`) y componentes individuales (SAN, BBVA, ITX, etc.)
+- Docs: https://twelvedata.com/docs
+- Alternativa oficial a Yahoo Finance (no oficial, frágil)
+- Endpoints: `/time_series`, `/quote`, `/stocks`
+
+### Alcance propuesto
+- `GET /api/v1/spain/indicators` — Euribor, tipos hipotecarios, IPC España (Banco de España)
+- `GET /api/v1/spain/ibex` — IBEX 35 + componentes (Twelve Data)
+- Dashboard: página `/spain` con indicadores españoles + cotizaciones IBEX
+
+## Phase 13 — Alerts
 - `POST /api/v1/alerts` — create threshold alert (e.g., "EUR/USD > 1.10")
 - `GET /api/v1/alerts` — list user's alerts
 - Cron evaluates alerts after each ingestion
 - Notification via webhook, email, or Telegram
 
-## Phase 13 — Investment Funds & Pension Plans
+## Phase 14 — Investment Funds & Pension Plans
 - Original project goal (see `docs/future-providers.md` for API research)
 - CNMV/Inverco scraping or Morningstar if viable
 - NAV (Net Asset Value) tracking, daily updates
