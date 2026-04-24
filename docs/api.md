@@ -48,6 +48,20 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 
 **Supported coins:** BTC, ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, DOT, POL, LINK, UNI, ATOM, LTC, FIL, APT, ARB, OP, NEAR, ICP
 
+### Macro Indicators (Go service, port 8110)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/macro/indicators` | All indicators with latest value (`?category=inflation`) |
+| GET | `/api/v1/macro/{source}/{id}/history` | Historical data for an indicator (`?days=365`) |
+| GET | `/health` | Go macro service health check |
+
+**Sources:** `fred` (FRED API) and `ecb` (ECB Data Portal)
+
+**Series (14):** CPIAUCSL, UNRATE, FEDFUNDS, DGS10, GDPC1, DGS2, T10Y2Y, PCEPI, PAYEMS, M2SL, CSUSHPINSA (FRED) — ICP, FM_MRR, EST (ECB)
+
+**Categories:** `inflation`, `employment`, `interest_rates`, `gdp`, `monetary`, `housing`
+
 ### SSR Pages
 
 | Method | Path | Description |
@@ -56,6 +70,8 @@ Generates TypeScript types into `packages/shared/src/generated/api.ts`.
 | GET | `/rates/:quote` | Detail — Chart.js line chart, period selector (30d/90d/180d/365d) |
 | GET | `/crypto` | Top 20 crypto prices with 24h change (fetches from Go service) |
 | GET | `/crypto/:id` | Crypto detail — Chart.js chart with period selector |
+| GET | `/macro` | Macro indicators grouped by category with change badges |
+| GET | `/macro/:source/:id` | Macro detail — Chart.js chart, period selector (3M/6M/1Y/5Y/ALL) |
 | GET | `/converter` | Interactive converter — dropdowns with flags, swap, live result |
 
 ## Response Formats
@@ -138,6 +154,44 @@ Cross-rates (e.g., GBP to JPY) are calculated via EUR: `rate = EUR/JPY / EUR/GBP
 }
 ```
 
+### Macro indicators
+
+```json
+{
+  "count": 14,
+  "indicators": [
+    {
+      "source": "fred",
+      "series_id": "CPIAUCSL",
+      "name": "CPI (All Urban Consumers)",
+      "category": "inflation",
+      "unit": "index",
+      "frequency": "monthly",
+      "latest_value": 330.29,
+      "latest_date": "2026-03-01",
+      "prev_value": 327.46,
+      "change": 2.83
+    }
+  ]
+}
+```
+
+### Macro history
+
+```json
+{
+  "source": "fred",
+  "series_id": "CPIAUCSL",
+  "name": "CPI (All Urban Consumers)",
+  "days": 365,
+  "count": 12,
+  "points": [
+    { "date": "2025-04-01", "value": 314.069 },
+    { "date": "2025-05-01", "value": 314.927 }
+  ]
+}
+```
+
 ## Error Format
 
 Errors follow RFC 9457 ProblemDetails (`application/problem+json`):
@@ -158,8 +212,11 @@ Errors follow RFC 9457 ProblemDetails (`application/problem+json`):
 |--------|------|-----------------|
 | [Frankfurter API](https://frankfurter.dev) | ECB exchange rates (30 currencies) | Daily (business days) |
 | [CoinGecko API](https://www.coingecko.com/en/api) | Crypto prices (top 20 coins) | On demand (free tier, no API key) |
+| [FRED API](https://fred.stlouisfed.org/docs/api/fred/) | US macro indicators (CPI, unemployment, rates, GDP) | Daily (API key required, 120 QPM) |
+| [ECB Data Portal](https://data.ecb.europa.eu/help/api/overview) | Eurozone macro indicators (HICP, ECB rates, ESTR) | Daily (public, no auth) |
 
 Historical exchange rates backfilled from 2024-01-01 (~17,500 records).
+Macro indicators backfilled from 2000-01-01 (~49,000 records).
 
 ## Conventions
 

@@ -10,18 +10,10 @@ interface DashboardDeps {
   };
 }
 
-const RETRY_ATTEMPTS = 5;
-const RETRY_DELAY_MS = 5000;
-
-async function fetchWithRetry(url: string): Promise<Response> {
-  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
-    const res = await fetch(url);
-    if (res.ok) return res;
-    if (attempt < RETRY_ATTEMPTS) {
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-    }
-  }
-  throw new Error(`Failed to fetch ${url} after ${RETRY_ATTEMPTS} attempts`);
+async function fetchService(url: string): Promise<Response> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+  if (!res.ok) throw new Error(`${url} returned ${res.status}`);
+  return res;
 }
 
 function daysAgo(days: number): string {
@@ -93,7 +85,7 @@ export function dashboardRoutes(deps: DashboardDeps) {
 
     server.get('/macro', async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const res = await fetchWithRetry(`${macroBaseUrl}/api/v1/macro/indicators`);
+        const res = await fetchService(`${macroBaseUrl}/api/v1/macro/indicators`);
         const data = (await res.json()) as { count: number; indicators: MacroIndicator[] };
         return reply.viewAsync('pages/macro', {
           title: 'Macro Indicators',
@@ -120,7 +112,7 @@ export function dashboardRoutes(deps: DashboardDeps) {
         const { days = '365' } = request.query as { days?: string };
 
         try {
-          const res = await fetchWithRetry(
+          const res = await fetchService(
             `${macroBaseUrl}/api/v1/macro/${source}/${id}/history?days=${days}`,
           );
           const data = (await res.json()) as MacroHistory;
@@ -154,7 +146,7 @@ export function dashboardRoutes(deps: DashboardDeps) {
 
     server.get('/crypto', async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const res = await fetchWithRetry(`${cryptoBaseUrl}/api/v1/crypto/latest`);
+        const res = await fetchService(`${cryptoBaseUrl}/api/v1/crypto/latest`);
         const data = (await res.json()) as { date: string; prices: CryptoPrice[] };
         return reply.viewAsync('pages/crypto', {
           title: 'Crypto',
@@ -179,8 +171,8 @@ export function dashboardRoutes(deps: DashboardDeps) {
 
         try {
           const [latestRes, historyRes] = await Promise.all([
-            fetchWithRetry(`${cryptoBaseUrl}/api/v1/crypto/latest`),
-            fetchWithRetry(`${cryptoBaseUrl}/api/v1/crypto/${coinId}/history?days=${days}`),
+            fetchService(`${cryptoBaseUrl}/api/v1/crypto/latest`),
+            fetchService(`${cryptoBaseUrl}/api/v1/crypto/${coinId}/history?days=${days}`),
           ]);
 
           const latest = (await latestRes.json()) as { prices: CryptoPrice[] };
