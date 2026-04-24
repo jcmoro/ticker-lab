@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= it.name %> — Ticker Lab</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
+    header span { color: #64748b; font-size: 0.875rem; }
+    nav { margin-left: auto; display: flex; gap: 1rem; }
+    nav a { color: #64748b; text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+    nav a:hover { color: #10b981; }
+    main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    .period-btn {
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-decoration: none;
+      background: #fff;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      transition: all 0.15s;
+    }
+    .period-btn:hover { border-color: #10b981; color: #10b981; }
+    .period-btn.active { background: #10b981; color: #fff; border-color: #10b981; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1><a href="/" style="color: inherit; text-decoration: none;">Ticker Lab</a></h1>
+    <span>Financial Data Dashboard</span>
+    <nav>
+      <a href="/">Rates</a>
+      <a href="/crypto">Crypto</a>
+      <a href="/macro">Macro</a>
+      <a href="/converter">Converter</a>
+      <a href="/api/docs">API</a>
+    </nav>
+  </header>
+  <main>
+    <section>
+      <p style="margin-bottom: 1.5rem;">
+        <a href="/macro" style="color: #10b981; text-decoration: none; font-size: 0.875rem;">&larr; Back to macro</a>
+      </p>
+
+      <div style="margin-bottom: 0.5rem;">
+        <h2 style="font-size: 1.5rem; font-weight: 700; display: inline;"><%= it.name %></h2>
+        <span style="font-size: 0.75rem; font-weight: 500; padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.5rem; background: #f0fdf4; color: #10b981;">
+          <%= it.source.toUpperCase() %>
+        </span>
+      </div>
+
+      <% if (it.points.length > 0) { %>
+        <% var latest = it.points[it.points.length - 1]; %>
+        <p style="margin-bottom: 0.25rem;">
+          <span style="font-size: 2rem; font-weight: 700; color: #0f172a;">
+            <%= latest.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) %><% if (it.unit === 'percent') { %>%<% } %>
+          </span>
+        </p>
+        <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem;">
+          <%= latest.date %> &middot; <%= it.points.length %> data points &middot; <%= it.frequency %>
+        </p>
+      <% } else { %>
+        <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem;">No data available yet</p>
+      <% } %>
+
+      <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; height: 350px;">
+        <canvas id="macroChart"></canvas>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <a href="/macro/<%= it.source %>/<%= it.series_id %>?days=90" class="period-btn<%= it.days === '90' ? ' active' : '' %>">3M</a>
+        <a href="/macro/<%= it.source %>/<%= it.series_id %>?days=180" class="period-btn<%= it.days === '180' ? ' active' : '' %>">6M</a>
+        <a href="/macro/<%= it.source %>/<%= it.series_id %>?days=365" class="period-btn<%= it.days === '365' ? ' active' : '' %>">1Y</a>
+        <a href="/macro/<%= it.source %>/<%= it.series_id %>?days=1825" class="period-btn<%= it.days === '1825' ? ' active' : '' %>">5Y</a>
+        <a href="/macro/<%= it.source %>/<%= it.series_id %>?days=9999" class="period-btn<%= it.days === '9999' ? ' active' : '' %>">ALL</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+    var data = <%~ JSON.stringify(it.points) %>;
+    var ctx = document.getElementById('macroChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(function(d) { return d.date; }),
+        datasets: [{
+          label: '<%= it.name %>',
+          data: data.map(function(d) { return d.value; }),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.08)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: data.length > 90 ? 0 : 2,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            callbacks: {
+              label: function(c) { return c.parsed.y.toLocaleString(undefined, { maximumFractionDigits: 2 }) + '<%= it.unit === "percent" ? "%" : "" %>'; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#94a3b8', maxTicksLimit: 10 },
+            grid: { color: '#f1f5f9' }
+          },
+          y: {
+            ticks: { color: '#94a3b8' },
+            grid: { color: '#f1f5f9' }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

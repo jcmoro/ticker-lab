@@ -1,0 +1,81 @@
+<% layout('../layouts/main', { title: it.title }) %>
+
+<section>
+  <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.5rem; font-weight: 700;">Macro Indicators</h2>
+    <span style="color: #64748b; font-size: 0.875rem;">
+      FRED &amp; ECB &middot; <%= it.count %> indicators
+    </span>
+  </div>
+
+  <% if (it.indicators.length === 0) { %>
+    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; text-align: center;">
+      <p style="color: #64748b;">Macro service is waking up. Retrying automatically&hellip;</p>
+      <div style="margin-top: 1rem;">
+        <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      </div>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    <script>
+      (function() {
+        var url = '<%= it.macroBaseUrl %>/health';
+        var attempts = 0;
+        var maxAttempts = 10;
+        function ping() {
+          attempts++;
+          fetch(url).then(function(r) {
+            if (r.ok) location.reload();
+            else if (attempts < maxAttempts) setTimeout(ping, 5000);
+          }).catch(function() {
+            if (attempts < maxAttempts) setTimeout(ping, 5000);
+          });
+        }
+        ping();
+      })();
+    </script>
+  <% } else { %>
+    <% var categories = {}; it.indicators.forEach(function(ind) { if (!categories[ind.category]) categories[ind.category] = []; categories[ind.category].push(ind); }); %>
+    <% var catLabels = { inflation: 'Inflation', employment: 'Employment', interest_rates: 'Interest Rates', gdp: 'GDP & Growth' }; %>
+    <% var catColors = { inflation: '#ef4444', employment: '#3b82f6', interest_rates: '#10b981', gdp: '#f59e0b' }; %>
+
+    <% Object.keys(categories).forEach(function(cat) { %>
+      <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1rem; font-weight: 600; color: #475569; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+          <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: <%= catColors[cat] || '#94a3b8' %>;"></span>
+          <%= catLabels[cat] || cat %>
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem;">
+          <% categories[cat].forEach(function(ind) { %>
+            <a href="/macro/<%= ind.source %>/<%= ind.series_id %>" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.25rem; text-decoration: none; color: inherit; transition: all 0.15s;" onmouseover="this.style.borderColor='#10b981'; this.style.boxShadow='0 2px 8px rgba(16,185,129,0.1)'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <div>
+                  <div style="font-weight: 600; font-size: 0.875rem; color: #0f172a;"><%= ind.name %></div>
+                  <div style="font-size: 0.7rem; color: #94a3b8;"><%= ind.source.toUpperCase() %> &middot; <%= ind.frequency %></div>
+                </div>
+                <% if (ind.change !== 0 && ind.latest_value !== 0) { %>
+                  <div style="font-size: 0.75rem; font-weight: 500; padding: 0.15rem 0.4rem; border-radius: 4px; <%= ind.change >= 0 ? 'color: #16a34a; background: #f0fdf4;' : 'color: #dc2626; background: #fef2f2;' %>">
+                    <%= ind.change >= 0 ? '+' : '' %><%= ind.change.toFixed(2) %>
+                  </div>
+                <% } %>
+              </div>
+              <% if (ind.latest_value !== 0) { %>
+                <div style="font-size: 1.25rem; font-weight: 700; color: #0f172a;">
+                  <%= ind.latest_value.toLocaleString(undefined, { maximumFractionDigits: ind.unit === 'percent' ? 2 : 1 }) %><% if (ind.unit === 'percent') { %>%<% } %>
+                </div>
+                <div style="font-size: 0.75rem; color: #94a3b8;">
+                  <%= ind.latest_date %>
+                </div>
+              <% } else { %>
+                <div style="font-size: 0.875rem; color: #94a3b8;">No data yet</div>
+              <% } %>
+            </a>
+          <% }) %>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+
+  <p style="color: #94a3b8; font-size: 0.75rem; margin-top: 1.5rem;">
+    Sources: FRED (Federal Reserve) &amp; ECB Data Portal &middot; Powered by Go
+  </p>
+</section>

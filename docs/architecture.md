@@ -99,15 +99,15 @@ GET /
 Two standalone Go services share the same Neon Postgres database with the Node.js monolith.
 
 ```
-┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│   Node (Fastify)  │  │ Go (converter)   │  │  Go (crypto)     │
-│   :3000           │  │   :8080          │  │   :8090          │
-│ exchange rates    │  │ /api/v1/go/      │  │ /api/v1/crypto/  │
-│ converter (node)  │  │   convert        │  │   latest         │
-│ dashboard SSR     │  │                  │  │   {id}/history   │
-└────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
-         │                     │                      │
-         └─────────────┬───────┴──────────────────────┘
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│   Node (Fastify)  │  │ Go (converter)   │  │  Go (crypto)     │  │  Go (macro)      │
+│   :3000           │  │   :8080          │  │   :8090          │  │   :8110          │
+│ exchange rates    │  │ /api/v1/go/      │  │ /api/v1/crypto/  │  │ /api/v1/macro/   │
+│ converter (node)  │  │   convert        │  │   latest         │  │   indicators     │
+│ dashboard SSR     │  │                  │  │   {id}/history   │  │   {src}/{id}/... │
+└────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
+         │                     │                      │                      │
+         └─────────────┬───────┴──────────────────────┴──────────────────────┘
                        │
                 ┌──────┴───────┐
                 │ Neon Postgres │
@@ -119,6 +119,13 @@ Two standalone Go services share the same Neon Postgres database with the Node.j
 - Reimplements currency converter in Go
 - Same logic, same contract (`ConversionResponse` with `engine` field)
 - Frontend toggle lets you compare Node vs Go response times
+
+### Macro Go (`apps/macro-go/`)
+- Third bounded context: macro economic indicators from FRED (US) and ECB (Eurozone)
+- Own tables (`macro_series`, `macro_observations`), auto-migrated on startup
+- FRED client (API key auth, JSON) + ECB client (public, CSV format)
+- Ingestion via CLI: `./macro-go ingest` (FRED), `./macro-go ingest-ecb` (ECB), `./macro-go backfill`
+- 14 series: CPI, UNRATE, FEDFUNDS, DGS10, GDPC1, DGS2, T10Y2Y, PCEPI, PAYEMS, M2SL, CSUSHPINSA, HICP, ECB MRR, ESTR
 
 ### Crypto Go (`apps/crypto-go/`)
 - Second bounded context: crypto prices from CoinGecko

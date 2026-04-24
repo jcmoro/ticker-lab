@@ -16,6 +16,7 @@ services:
       - FRANKFURTER_BASE_URL=https://api.frankfurter.dev
       - GO_CONVERTER_URL=http://converter-go:8080
       - CRYPTO_GO_URL=http://crypto-go:8090
+      - MACRO_GO_URL=http://macro-go:8110
     depends_on:
       db:
         condition: service_healthy
@@ -30,6 +31,21 @@ services:
     environment:
       - DATABASE_URL=postgresql://ticker:ticker@db:5432/ticker_lab
       - PORT=8090
+    depends_on:
+      db:
+        condition: service_healthy
+
+  macro-go:
+    build:
+      context: .
+      dockerfile: docker/macro-go/Dockerfile
+      target: dev
+    ports:
+      - "8110:8110"
+    environment:
+      - DATABASE_URL=postgresql://ticker:ticker@db:5432/ticker_lab
+      - PORT=8110
+      - FRED_API_KEY=${FRED_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy

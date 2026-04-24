@@ -4,6 +4,44 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-04-24 — Phase 11: Macro Indicators (FRED & ECB)
+
+**Summary:** New bounded context — macro economic indicators from FRED (US) and ECB (Eurozone). Go microservice (`macro-go`) ingests 14 series and serves them via REST + SSR dashboard.
+
+**New service:** `apps/macro-go/`
+- `GET /health` — health check
+- `GET /api/v1/macro/indicators?category=` — all indicators with latest value, grouped by category
+- `GET /api/v1/macro/{source}/{id}/history?days=365` — historical data for an indicator
+- `./macro-go ingest` — incremental FRED sync
+- `./macro-go ingest-ecb` — incremental ECB sync
+- `./macro-go backfill` — full historical backfill (FRED + ECB, from 2000)
+
+**Indicators (14 series):**
+- Inflation: CPI, PCE Price Index (FRED), HICP (ECB)
+- Employment: Unemployment Rate, Nonfarm Payrolls (FRED)
+- Interest Rates: Fed Funds, 10Y Treasury, 2Y Treasury, 10Y-2Y Spread (FRED), ECB MRR, ESTR (ECB)
+- GDP: Real GDP (FRED)
+- Monetary: M2 Money Supply (FRED)
+- Housing: Case-Shiller Home Price Index (FRED)
+
+**Schema changes:**
+- `macro_series` table (source, series_id, name, frequency, unit, category)
+- `macro_observations` table (source, series_id, value, date) with unique constraint
+
+**Pages added:**
+- `GET /macro` — indicators grouped by category with color-coded sections, change badges
+- `GET /macro/:source/:id` — Chart.js chart with period selector (3M/6M/1Y/5Y/ALL), emerald theme
+
+**Other:**
+- FRED: API key auth, JSON response, 120 QPM
+- ECB: no auth, CSV format, public API
+- Docker: `docker/macro-go/Dockerfile`, service on port 8110
+- GitHub Actions: CI (vet + test), daily ingest cron (FRED + ECB)
+- Navigation: "Macro" link added to all pages
+- 6 Go tests (health, CORS, indicators, history, save+find)
+
+---
+
 ## 2026-04-19 — Phase 9: Currency Converter
 
 **Summary:** Convert between any two of the 30 supported currencies using ECB rates. Supports cross-rates via EUR.

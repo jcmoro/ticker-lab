@@ -47,3 +47,24 @@ jobs:
 
       - name: Run ingestion
         run: cd apps/crypto-go && go run . ingest
+
+  macro:
+    name: Ingest Macro Indicators
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: apps/macro-go/go.sum
+
+      - name: Ingest FRED
+        run: cd apps/macro-go && go run . ingest
+
+      - name: Ingest ECB
+        run: cd apps/macro-go && go run . ingest-ecb

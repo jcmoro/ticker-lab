@@ -89,6 +89,67 @@ export function dashboardRoutes(deps: DashboardDeps) {
       });
     });
 
+    const macroBaseUrl = process.env.MACRO_GO_URL ?? 'http://localhost:8110';
+
+    server.get('/macro', async (_request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const res = await fetchWithRetry(`${macroBaseUrl}/api/v1/macro/indicators`);
+        const data = (await res.json()) as { count: number; indicators: MacroIndicator[] };
+        return reply.viewAsync('pages/macro', {
+          title: 'Macro Indicators',
+          count: data.count,
+          indicators: data.indicators ?? [],
+        });
+      } catch {
+        return reply.viewAsync('pages/macro', {
+          title: 'Macro Indicators',
+          count: 0,
+          indicators: [],
+          macroBaseUrl,
+        });
+      }
+    });
+
+    server.get<{ Params: { source: string; id: string } }>(
+      '/macro/:source/:id',
+      async (
+        request: FastifyRequest<{ Params: { source: string; id: string } }>,
+        reply: FastifyReply,
+      ) => {
+        const { source, id } = request.params;
+        const { days = '365' } = request.query as { days?: string };
+
+        try {
+          const res = await fetchWithRetry(
+            `${macroBaseUrl}/api/v1/macro/${source}/${id}/history?days=${days}`,
+          );
+          const data = (await res.json()) as MacroHistory;
+
+          return reply.viewAsync('pages/macro-detail', {
+            title: data.name ?? id,
+            source,
+            series_id: id,
+            name: data.name ?? id,
+            unit: findIndicatorUnit(source, id),
+            frequency: findIndicatorFreq(source, id),
+            points: data.points ?? [],
+            days,
+          });
+        } catch {
+          return reply.viewAsync('pages/macro-detail', {
+            title: id,
+            source,
+            series_id: id,
+            name: id,
+            unit: '',
+            frequency: '',
+            points: [],
+            days,
+          });
+        }
+      },
+    );
+
     const cryptoBaseUrl = process.env.CRYPTO_GO_URL ?? 'http://localhost:8090';
 
     server.get('/crypto', async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -182,4 +243,51 @@ function sanitizeCryptoPrices(prices: CryptoPrice[] | undefined): CryptoPrice[] 
     price_usd: p.price_usd ?? 0,
     change_24h: p.change_24h ?? 0,
   }));
+}
+
+interface MacroIndicator {
+  source: string;
+  series_id: string;
+  name: string;
+  category: string;
+  unit: string;
+  frequency: string;
+  latest_value: number;
+  latest_date: string;
+  prev_value?: number;
+  change?: number;
+}
+
+interface MacroHistory {
+  source: string;
+  series_id: string;
+  name: string;
+  days: number;
+  count: number;
+  points: { date: string; value: number }[];
+}
+
+const macroSeriesMeta: Record<string, { unit: string; freq: string }> = {
+  'fred/CPIAUCSL': { unit: 'index', freq: 'monthly' },
+  'fred/UNRATE': { unit: 'percent', freq: 'monthly' },
+  'fred/FEDFUNDS': { unit: 'percent', freq: 'monthly' },
+  'fred/DGS10': { unit: 'percent', freq: 'daily' },
+  'fred/GDPC1': { unit: 'billions_usd', freq: 'quarterly' },
+  'fred/DGS2': { unit: 'percent', freq: 'daily' },
+  'fred/T10Y2Y': { unit: 'percent', freq: 'daily' },
+  'fred/PCEPI': { unit: 'index', freq: 'monthly' },
+  'fred/PAYEMS': { unit: 'thousands', freq: 'monthly' },
+  'fred/M2SL': { unit: 'billions_usd', freq: 'monthly' },
+  'fred/CSUSHPINSA': { unit: 'index', freq: 'monthly' },
+  'ecb/ICP': { unit: 'percent', freq: 'monthly' },
+  'ecb/FM_MRR': { unit: 'percent', freq: 'monthly' },
+  'ecb/EST': { unit: 'percent', freq: 'daily' },
+};
+
+function findIndicatorUnit(source: string, id: string): string {
+  return macroSeriesMeta[`${source}/${id}`]?.unit ?? '';
+}
+
+function findIndicatorFreq(source: string, id: string): string {
+  return macroSeriesMeta[`${source}/${id}`]?.freq ?? '';
 }

@@ -1,4 +1,4 @@
-.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto-backfill docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
+.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto-backfill job-macro-ingest job-macro-backfill docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
 
 .DEFAULT_GOAL := help
 
@@ -34,6 +34,8 @@ help: ## Show available targets
 	@echo "  \033[36mjob-backfill\033[0m       Backfill historical exchange rates (local)"
 	@echo "  \033[36mjob-crypto\033[0m         Fetch latest crypto prices (local)"
 	@echo "  \033[36mjob-crypto-backfill\033[0m Backfill historical crypto prices (local)"
+	@echo "  \033[36mjob-macro-ingest\033[0m   Ingest FRED + ECB macro indicators (local)"
+	@echo "  \033[36mjob-macro-backfill\033[0m Backfill all macro indicators history (local)"
 	@echo ""
 	@echo "  \033[1mBuild & Deploy\033[0m"
 	@echo "  \033[36mbuild\033[0m              Build for production"
@@ -46,6 +48,8 @@ help: ## Show available targets
 	@echo "  \033[36mprod-backfill\033[0m      Backfill historical rates against production DB"
 	@echo "  \033[36mprod-crypto\033[0m        Fetch crypto prices against production DB"
 	@echo "  \033[36mprod-crypto-backfill\033[0m Backfill crypto history against production DB"
+	@echo "  \033[36mprod-macro-ingest\033[0m  Ingest macro indicators against production DB"
+	@echo "  \033[36mprod-macro-backfill\033[0m Backfill macro history against production DB"
 	@echo ""
 
 # ─── Development ─────────────────────────────────────────────
@@ -79,10 +83,12 @@ typecheck:
 go-vet:
 	docker compose run --rm converter-go go vet ./...
 	docker compose run --rm crypto-go go vet ./...
+	docker compose run --rm macro-go go vet ./...
 
 go-test:
 	docker compose run --rm converter-go go test ./...
 	docker compose run --rm crypto-go go test ./...
+	docker compose run --rm macro-go go test ./...
 
 go-ci: go-vet go-test
 
@@ -124,6 +130,13 @@ job-crypto: ## Fetch latest crypto prices from CoinGecko
 job-crypto-backfill: ## Backfill historical crypto prices (default: 365 days)
 	docker compose run --rm crypto-go ./crypto-go backfill 365
 
+job-macro-ingest: ## Ingest FRED + ECB macro indicators
+	docker compose run --rm macro-go ./macro-go ingest
+	docker compose run --rm macro-go ./macro-go ingest-ecb
+
+job-macro-backfill: ## Backfill all macro indicators history
+	docker compose run --rm macro-go ./macro-go backfill
+
 # ─── Build & Deploy ──────────────────────────────────────────
 
 build:
@@ -153,3 +166,10 @@ prod-crypto: ## Fetch crypto prices against production DB
 
 prod-crypto-backfill: ## Backfill crypto history against production DB (365 days)
 	cd apps/crypto-go && DATABASE_URL="$(DATABASE_URL)" /usr/local/go/bin/go run . backfill 365
+
+prod-macro-ingest: ## Ingest macro indicators against production DB
+	cd apps/macro-go && DATABASE_URL="$(DATABASE_URL)" FRED_API_KEY="$(FRED_API_KEY)" /usr/local/go/bin/go run . ingest
+	cd apps/macro-go && DATABASE_URL="$(DATABASE_URL)" /usr/local/go/bin/go run . ingest-ecb
+
+prod-macro-backfill: ## Backfill macro history against production DB
+	cd apps/macro-go && DATABASE_URL="$(DATABASE_URL)" FRED_API_KEY="$(FRED_API_KEY)" /usr/local/go/bin/go run . backfill
