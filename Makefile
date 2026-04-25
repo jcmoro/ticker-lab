@@ -1,4 +1,4 @@
-.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto-backfill job-macro-ingest job-macro-backfill docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
+.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto-backfill job-macro-ingest job-macro-backfill load-test load-test-smoke docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
 
 .DEFAULT_GOAL := help
 
@@ -36,6 +36,10 @@ help: ## Show available targets
 	@echo "  \033[36mjob-crypto-backfill\033[0m Backfill historical crypto prices (local)"
 	@echo "  \033[36mjob-macro-ingest\033[0m   Ingest FRED + ECB macro indicators (local)"
 	@echo "  \033[36mjob-macro-backfill\033[0m Backfill all macro indicators history (local)"
+	@echo ""
+	@echo "  \033[1mLoad Testing\033[0m"
+	@echo "  \033[36mload-test\033[0m          Run k6 load test (full: smoke + ramp-up)"
+	@echo "  \033[36mload-test-smoke\033[0m    Quick smoke test (5 VUs, 30s)"
 	@echo ""
 	@echo "  \033[1mBuild & Deploy\033[0m"
 	@echo "  \033[36mbuild\033[0m              Build for production"
@@ -136,6 +140,36 @@ job-macro-ingest: ## Ingest FRED + ECB macro indicators
 
 job-macro-backfill: ## Backfill all macro indicators history
 	docker compose run --rm macro-go ./macro-go backfill
+
+# ─── Load Testing ───────────────────────────────────────────
+
+load-test: ## Run k6 load test against local services (generates HTML report)
+	docker run --rm --add-host=host.docker.internal:host-gateway \
+		-v $(PWD)/tests/load:/scripts \
+		-v $(PWD)/tests/load:/results \
+		grafana/k6 run /scripts/main.js
+	@echo ""
+	@echo "Report: tests/load/report.html"
+
+load-test-smoke: ## Quick smoke test (5 VUs, 30s)
+	docker run --rm --add-host=host.docker.internal:host-gateway \
+		-v $(PWD)/tests/load:/scripts \
+		-v $(PWD)/tests/load:/results \
+		-e K6_SCENARIOS='{"smoke":{"executor":"constant-vus","vus":5,"duration":"30s"}}' \
+		grafana/k6 run /scripts/main.js
+	@echo ""
+	@echo "Report: tests/load/report.html"
+
+load-test-prod: ## Run k6 load test against production (Render)
+	docker run --rm \
+		-v $(PWD)/tests/load:/scripts \
+		-v $(PWD)/tests/load:/results \
+		-e API_BASE=https://tickerlab.onrender.com \
+		-e CRYPTO_BASE=https://tickerlab-crypto.onrender.com \
+		-e MACRO_BASE=https://macro-go.onrender.com \
+		grafana/k6 run /scripts/main.js
+	@echo ""
+	@echo "Report: tests/load/report.html"
 
 # ─── Build & Deploy ──────────────────────────────────────────
 
