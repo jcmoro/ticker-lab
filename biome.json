@@ -35,7 +35,8 @@
       "!**/drizzle",
       "!**/.pnpm-store",
       "!**/.claude",
-      "!**/generated"
+      "!**/generated",
+      "!tests/load"
     ]
   }
 }
