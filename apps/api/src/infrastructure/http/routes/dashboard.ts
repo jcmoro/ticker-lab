@@ -215,6 +215,43 @@ export function dashboardRoutes(deps: DashboardDeps) {
       },
     );
 
+    const esiosBaseUrl = process.env.ESIOS_GO_URL ?? 'http://localhost:8120';
+
+    server.get('/electricity', async (request: FastifyRequest, reply: FastifyReply) => {
+      const { category = '' } = request.query as { category?: string };
+      const url = `${esiosBaseUrl}/api/v1/electricity/indicators?page_size=100${category ? `&category=${encodeURIComponent(category)}` : ''}`;
+      try {
+        const res = await fetchService(url);
+        const data = (await res.json()) as ElectricityListResponse;
+        return reply.viewAsync(
+          'pages/electricity',
+          electricityViewModel(category, esiosBaseUrl, data),
+        );
+      } catch {
+        return reply.viewAsync(
+          'pages/electricity',
+          electricityViewModel(category, esiosBaseUrl, null),
+        );
+      }
+    });
+
+    server.get<{ Params: { indicator_id: string; geo_id: string } }>(
+      '/electricity/:indicator_id/:geo_id',
+      async (
+        request: FastifyRequest<{ Params: { indicator_id: string; geo_id: string } }>,
+        reply: FastifyReply,
+      ) => {
+        const indicatorId = request.params.indicator_id;
+        const geoId = request.params.geo_id;
+        const { days = '7' } = request.query as { days?: string };
+        const numDays = Math.min(Number(days) || 7, 365);
+        return reply.viewAsync(
+          'pages/electricity-detail',
+          await electricityDetailViewModel(esiosBaseUrl, indicatorId, geoId, numDays),
+        );
+      },
+    );
+
     const cnmvBaseUrl = process.env.CNMV_GO_URL ?? 'http://localhost:8130';
 
     server.get('/funds', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -266,6 +303,100 @@ export function dashboardRoutes(deps: DashboardDeps) {
         }
       },
     );
+  };
+}
+
+interface ElectricityIndicator {
+  indicator_id: number;
+  geo_id: number;
+  name: string;
+  short_name: string;
+  category: string;
+  unit: string;
+  geo_name: string;
+  frequency: string;
+  latest_value: number;
+  latest_at: string;
+  prev_value?: number;
+  change?: number;
+}
+
+interface ElectricityListResponse {
+  indicators?: ElectricityIndicator[];
+  next_page_token?: string;
+  total_size?: number;
+}
+
+interface ElectricityHistoryPoint {
+  datetime_utc: string;
+  value: number;
+}
+
+interface ElectricityObservationsResponse {
+  indicator_id: number;
+  geo_id: number;
+  points?: ElectricityHistoryPoint[];
+  next_page_token?: string;
+}
+
+function electricityViewModel(
+  category: string,
+  esiosBaseUrl: string,
+  data: ElectricityListResponse | null,
+) {
+  return {
+    title: 'Electricity',
+    indicators: data?.indicators ?? [],
+    totalSize: data?.total_size ?? 0,
+    filters: { category },
+    esiosBaseUrl,
+  };
+}
+
+async function electricityDetailViewModel(
+  esiosBaseUrl: string,
+  indicatorId: string,
+  geoId: string,
+  numDays: number,
+) {
+  // ESIOS doesn't expose a per-indicator detail endpoint, so we hydrate the
+  // metadata by listing the full catalog (small: ~5–14 series) and matching.
+  const start = new Date(Date.now() - numDays * 86_400_000).toISOString();
+  const end = new Date().toISOString();
+  const obsUrl = `${esiosBaseUrl}/api/v1/electricity/indicators/${indicatorId}/geos/${geoId}/observations?start_date=${start}&end_date=${end}&page_size=8760`;
+  const indicatorsUrl = `${esiosBaseUrl}/api/v1/electricity/indicators?page_size=500`;
+
+  const [meta, points] = await Promise.allSettled([
+    fetchService(indicatorsUrl).then((r) => r.json() as Promise<ElectricityListResponse>),
+    fetchService(obsUrl).then((r) => r.json() as Promise<ElectricityObservationsResponse>),
+  ]);
+
+  const indicators =
+    meta.status === 'fulfilled' && meta.value.indicators ? meta.value.indicators : [];
+  const fallback: ElectricityIndicator = {
+    indicator_id: Number(indicatorId),
+    geo_id: Number(geoId),
+    name: `Indicator ${indicatorId}`,
+    short_name: indicatorId,
+    category: '',
+    unit: '',
+    geo_name: `Geo ${geoId}`,
+    frequency: 'hourly',
+    latest_value: 0,
+    latest_at: '',
+  };
+  const indicator =
+    indicators.find((i) => i.indicator_id === Number(indicatorId) && i.geo_id === Number(geoId)) ??
+    fallback;
+
+  const history = points.status === 'fulfilled' && points.value.points ? points.value.points : [];
+
+  return {
+    title: indicator.name,
+    indicator,
+    history,
+    days: String(numDays),
+    esiosBaseUrl,
   };
 }
 
