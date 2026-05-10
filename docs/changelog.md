@@ -4,6 +4,32 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-10 — Phase 12 (BdE): Spanish rates as third macro source
+
+**Summary:** `macro-go` extended with a third upstream — Banco de España (BIEST) — adding 10 Spain-specific rate series under the new `spanish_rates` category. No new service; same schema; reuses existing `/api/v1/macro/...` endpoints.
+
+**Series added (category `spanish_rates`):**
+- Tier 1 — Mortgage reference (monthly): Euribor 1m / 3m / 6m / 12m, IRPH, IRS 5y
+- Tier 2 — Euribor daily (`D_DNBAF172`)
+- Tier 3 — TIPI Spain-only NEDR/TEDR (monthly): préstamos hogares vivienda, consumo; sociedades no financ.
+
+**New code:** `apps/macro-go/bde.go` (`BDEClient`, gap detection, ISO-8601 → `YYYY-MM-DD` normalization). `bdeSeries` and `bdeDefaultRange` in `models.go`. `ingest-bde` subcommand and BdE block in `backfill`.
+
+**Schema changes:** none. Reuses `macro_series` + `macro_observations` with `source='bde'`.
+
+**Endpoints affected:** none new. `/api/v1/macro/indicators?category=spanish_rates` now returns the 10 BdE series. `/macro/bde/{id}/history` works through the existing generic handler.
+
+**Operational:**
+- `make job-macro-ingest-bde` — ingest only BdE.
+- `make job-macro-ingest` — now runs FRED + ECB + BdE in sequence.
+- `make seed-dev` — includes BdE in the macro step.
+
+**Tests added (4):** `TestBDEDateNormalization`, `TestBDEParsing`, `TestBDEErrorResponse`, `TestBDEGapDetection`. Smoke-validated against the real API: 1,315 observations across 10 series.
+
+**Gotcha worth recording:** `app.bde.es` drops requests without a recognizable User-Agent (returns EOF mid-handshake). The client sets `Mozilla/5.0 (compatible; ticker-lab-macro-go/1.0; ...)`.
+
+---
+
 ## 2026-04-24 — Phase 11: Macro Indicators (FRED & ECB)
 
 **Summary:** New bounded context — macro economic indicators from FRED (US) and ECB (Eurozone). Go microservice (`macro-go`) ingests 14 series and serves them via REST + SSR dashboard.

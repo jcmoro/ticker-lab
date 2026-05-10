@@ -30,7 +30,7 @@ func main() {
 		log.Fatalf("Migration failed: %v", err)
 	}
 
-	allSeries := append(fredSeries, ecbSeries...)
+	allSeries := append(append(append([]SeriesMeta{}, fredSeries...), ecbSeries...), bdeSeries...)
 	if err := repo.SeedSeries(context.Background(), allSeries); err != nil {
 		log.Fatalf("Seed series failed: %v", err)
 	}
@@ -49,11 +49,14 @@ func main() {
 		case "ingest-ecb":
 			runIngestECB(repo, NewECBClient())
 			return
+		case "ingest-bde":
+			runIngestBDE(repo, NewBDEClient())
+			return
 		case "backfill":
 			if fredAPIKey == "" {
 				log.Fatal("FRED_API_KEY environment variable is required for backfill")
 			}
-			runBackfill(repo, NewFREDClient(fredAPIKey), NewECBClient())
+			runBackfill(repo, NewFREDClient(fredAPIKey), NewECBClient(), NewBDEClient())
 			return
 		}
 	}
@@ -144,7 +147,37 @@ func runIngestECB(repo *Repository, client *ECBClient) {
 	fmt.Printf("Done: %d ECB observations ingested.\n", total)
 }
 
-func runBackfill(repo *Repository, fredClient *FREDClient, ecbClient *ECBClient) {
+func runIngestBDE(repo *Repository, client *BDEClient) {
+	total := 0
+	for i, s := range bdeSeries {
+		if i > 0 {
+			// Rate limit not documented; 1s between calls is defensive.
+			time.Sleep(1 * time.Second)
+		}
+
+		rango := bdeDefaultRange[s.Freq]
+		log.Printf("[BDE %d/%d] Fetching %s (rango=%s)...", i+1, len(bdeSeries), s.SeriesID, rango)
+
+		obs, err := client.FetchSeries(s.SeriesID, rango)
+		if err != nil {
+			log.Printf("  Error: %v (skipping)", err)
+			continue
+		}
+
+		if len(obs) > 0 {
+			if err := repo.SaveObservations(context.Background(), obs); err != nil {
+				log.Printf("  Save error: %v (skipping)", err)
+				continue
+			}
+			_ = repo.UpdateLastSynced(context.Background(), s.Source, s.SeriesID)
+			log.Printf("  Saved %d observations", len(obs))
+			total += len(obs)
+		}
+	}
+	fmt.Printf("Done: %d BDE observations ingested.\n", total)
+}
+
+func runBackfill(repo *Repository, fredClient *FREDClient, ecbClient *ECBClient, bdeClient *BDEClient) {
 	log.Println("=== Backfilling FRED series ===")
 	total := 0
 	for i, s := range fredSeries {
@@ -184,6 +217,32 @@ func runBackfill(repo *Repository, fredClient *FREDClient, ecbClient *ECBClient)
 		log.Printf("[ECB %d/%d] Backfilling %s...", i+1, len(ecbSeries), s.SeriesID)
 
 		obs, err := ecbClient.FetchDataflow(s.SeriesID, df.Dataflow, df.Key, "2000-01")
+		if err != nil {
+			log.Printf("  Error: %v (skipping)", err)
+			continue
+		}
+
+		if len(obs) > 0 {
+			if err := repo.SaveObservations(context.Background(), obs); err != nil {
+				log.Printf("  Save error: %v (skipping)", err)
+				continue
+			}
+			_ = repo.UpdateLastSynced(context.Background(), s.Source, s.SeriesID)
+			log.Printf("  Saved %d observations", len(obs))
+			total += len(obs)
+		}
+	}
+
+	log.Println("=== Backfilling BDE series ===")
+	for i, s := range bdeSeries {
+		if i > 0 {
+			time.Sleep(1 * time.Second)
+		}
+
+		// rango=MAX for full history when supported by the series frequency.
+		log.Printf("[BDE %d/%d] Backfilling %s (rango=MAX)...", i+1, len(bdeSeries), s.SeriesID)
+
+		obs, err := bdeClient.FetchSeries(s.SeriesID, "MAX")
 		if err != nil {
 			log.Printf("  Error: %v (skipping)", err)
 			continue

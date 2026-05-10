@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -216,4 +217,127 @@ func TestSaveAndFindIndicators(t *testing.T) {
 	// Cleanup
 	_, _ = pool.Exec(context.Background(), "DELETE FROM macro_observations WHERE source = 'test'")
 	_, _ = pool.Exec(context.Background(), "DELETE FROM macro_series WHERE source = 'test'")
+}
+
+func TestBDEDateNormalization(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"full timestamp", "2026-04-01T08:15:00Z", "2026-04-01"},
+		{"DST offset", "2026-03-01T09:15:00Z", "2026-03-01"},
+		{"already date-only", "2026-05-09", "2026-05-09"},
+		{"empty", "", ""},
+		{"too short", "2026-04", ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := normalizeBDEDate(tc.in)
+			if got != tc.want {
+				t.Errorf("normalizeBDEDate(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestBDEParsing(t *testing.T) {
+	// Real shape captured from the BdE API for a Euribor 12m series.
+	payload := `[{
+		"serie": "D_1NBAF472",
+		"descripcion": "Euribor a un año",
+		"codFrecuencia": "M",
+		"decimales": 3,
+		"simbolo": "%",
+		"fechas":  ["2026-04-01T08:15:00Z", "2026-03-01T09:15:00Z", "2026-02-01T09:15:00Z"],
+		"valores": [2.747, 2.565, null]
+	}]`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Sanity: client built the URL we expect.
+		if !strings.Contains(r.URL.RawQuery, "series=D_1NBAF472") {
+			t.Errorf("unexpected query: %s", r.URL.RawQuery)
+		}
+		if !strings.Contains(r.URL.RawQuery, "rango=60M") {
+			t.Errorf("expected rango=60M, got: %s", r.URL.RawQuery)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(payload))
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBDEClient()
+	client.baseURL = server.URL
+
+	obs, err := client.FetchSeries("D_1NBAF472", "60M")
+	if err != nil {
+		t.Fatalf("FetchSeries: %v", err)
+	}
+
+	// Two valid values; the third is null and must be filtered.
+	if len(obs) != 2 {
+		t.Fatalf("len(obs) = %d, want 2", len(obs))
+	}
+	if obs[0].Source != "bde" {
+		t.Errorf("Source = %q, want bde", obs[0].Source)
+	}
+	if obs[0].SeriesID != "D_1NBAF472" {
+		t.Errorf("SeriesID = %q", obs[0].SeriesID)
+	}
+	if obs[0].Date != "2026-04-01" {
+		t.Errorf("Date = %q, want 2026-04-01", obs[0].Date)
+	}
+	if obs[0].Value != 2.747 {
+		t.Errorf("Value = %v, want 2.747", obs[0].Value)
+	}
+	if obs[1].Date != "2026-03-01" || obs[1].Value != 2.565 {
+		t.Errorf("second obs = %+v", obs[1])
+	}
+}
+
+func TestBDEErrorResponse(t *testing.T) {
+	// BdE wraps API-level errors in the response body, not the HTTP status.
+	payload := `[{
+		"codigo": "BAD_RANGO",
+		"errNum": 412,
+		"errMsgUsr": "El rango especificado no es compatible con la frecuencia"
+	}]`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(payload))
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewBDEClient()
+	client.baseURL = server.URL
+
+	_, err := client.FetchSeries("D_1NBAF472", "12M")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "412") {
+		t.Errorf("error should mention errNum: %v", err)
+	}
+}
+
+func TestBDEGapDetection(t *testing.T) {
+	tests := []struct {
+		raw  string
+		want bool
+	}{
+		{"null", true},
+		{`"_"`, true},
+		{`""`, true},
+		{"", true},
+		{"2.747", false},
+		{"0", false},
+		{"-1.5", false},
+	}
+	for _, tc := range tests {
+		got := isBDEGap([]byte(tc.raw))
+		if got != tc.want {
+			t.Errorf("isBDEGap(%q) = %v, want %v", tc.raw, got, tc.want)
+		}
+	}
 }

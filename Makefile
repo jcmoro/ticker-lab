@@ -135,11 +135,15 @@ job-crypto: ## Fetch latest crypto prices from CoinGecko
 job-crypto-backfill: ## Backfill historical crypto prices (default: 365 days)
 	docker compose run --rm crypto-go ./crypto-go backfill 365
 
-job-macro-ingest: ## Ingest FRED + ECB macro indicators
+job-macro-ingest: ## Ingest FRED + ECB + BdE macro indicators
 	docker compose run --rm macro-go ./macro-go ingest
 	docker compose run --rm macro-go ./macro-go ingest-ecb
+	docker compose run --rm macro-go ./macro-go ingest-bde
 
-job-macro-backfill: ## Backfill all macro indicators history
+job-macro-ingest-bde: ## Ingest only BdE Spanish rates
+	docker compose run --rm macro-go ./macro-go ingest-bde
+
+job-macro-backfill: ## Backfill all macro indicators history (FRED + ECB + BdE)
 	docker compose run --rm macro-go ./macro-go backfill
 
 seed-dev: ## Seed dev DB with FX + crypto + macro (requires `make dev` running)
@@ -147,8 +151,8 @@ seed-dev: ## Seed dev DB with FX + crypto + macro (requires `make dev` running)
 	@$(MAKE) --no-print-directory job-ingest || echo "  FX ingest failed"
 	@echo "→ Seeding crypto prices (CoinGecko)..."
 	@$(MAKE) --no-print-directory job-crypto || echo "  Crypto ingest failed"
-	@echo "→ Seeding macro indicators (FRED + ECB)..."
-	@$(MAKE) --no-print-directory job-macro-ingest || echo "  Macro ingest failed (FRED_API_KEY may be missing)"
+	@echo "→ Seeding macro indicators (FRED + ECB + BdE)..."
+	@$(MAKE) --no-print-directory job-macro-ingest || echo "  Macro ingest failed (FRED_API_KEY may be missing for FRED step)"
 	@echo "Seed complete."
 
 # ─── Load Testing ───────────────────────────────────────────

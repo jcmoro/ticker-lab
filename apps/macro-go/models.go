@@ -91,3 +91,31 @@ var ecbDataflows = map[string]struct {
 	"FM_MRR": {Dataflow: "FM", Key: "B.U2.EUR.4F.KR.MRR_FR.LEV"},
 	"EST":    {Dataflow: "EST", Key: "B.EU000A2X2A25.WT"},
 }
+
+// BdE series — Spain-specific rates not present in ECB SDW (IRPH, MIBOR,
+// NEDR/TEDR for Spanish banks, plus mortgage-reference Euribor).
+// See docs/bde-integration.md.
+var bdeSeries = []SeriesMeta{
+	// Tier 1 — Mortgage reference rates (monthly)
+	{Source: "bde", SeriesID: "D_1NBAF472", Name: "Euribor 12m (referencia hipotecaria ES)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+	{Source: "bde", SeriesID: "D_1NBAE972", Name: "Euribor 6m (referencia hipotecaria ES)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+	{Source: "bde", SeriesID: "D_1NBAD972", Name: "Euribor 3m (referencia hipotecaria ES)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+	{Source: "bde", SeriesID: "D_1NBAC972", Name: "Euribor 1m (referencia hipotecaria ES)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+	{Source: "bde", SeriesID: "D_1T9H0000", Name: "IRPH (Tipo medio préstamos hipotecarios)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+	{Source: "bde", SeriesID: "D_1T9H0011", Name: "IRS 5 años (referencia hipotecaria ES)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+	// Tier 2 — Euribor daily
+	{Source: "bde", SeriesID: "D_DNBAF172", Name: "Euribor 12m (diario)", Freq: "daily", Unit: "percent", Category: "spanish_rates"},
+	// Tier 3 — TIPI: rates applied by Spanish credit institutions (NEDR/TEDR, Spain-only)
+	{Source: "bde", SeriesID: "DN_1TI2T0135", Name: "Préstamos hogares — vivienda (TEDR ES)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+	{Source: "bde", SeriesID: "DN_1TI2T0138", Name: "Préstamos hogares — consumo (TEDR ES)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+	{Source: "bde", SeriesID: "DN_1TI2T0144", Name: "Préstamos sociedades no financ. (TEDR ES)", Freq: "monthly", Unit: "percent", Category: "spanish_rates"},
+}
+
+// bdeDefaultRange maps frequency to the `rango` enum the BdE API expects.
+// BdE rejects mismatched combinations (e.g. "12M" against a monthly series)
+// with errNum 412, so the mapping is strict.
+var bdeDefaultRange = map[string]string{
+	"daily":     "36M",
+	"monthly":   "60M",
+	"quarterly": "MAX",
+}
