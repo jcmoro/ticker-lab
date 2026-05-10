@@ -22,14 +22,6 @@ type HealthResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
-type ProblemDetails struct {
-	Type   string `json:"type"`
-	Title  string `json:"title"`
-	Status int    `json:"status"`
-	Detail string `json:"detail"`
-	Code   string `json:"code"`
-}
-
 var topCoins = []struct {
 	ID     string
 	Symbol string

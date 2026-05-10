@@ -1,0 +1,8 @@
+go 1.25.0
+
+use (
+	./apps/converter-go
+	./apps/crypto-go
+	./apps/internal/httpx
+	./apps/macro-go
+)

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ticker-lab/httpx"
 )
 
 func getTestPool(t *testing.T) *pgxpool.Pool {
@@ -58,7 +59,7 @@ func TestCorsMiddleware(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	handler := corsMiddleware(mux)
+	handler := httpx.CORSMiddleware(mux)
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()

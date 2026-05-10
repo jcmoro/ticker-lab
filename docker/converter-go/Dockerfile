@@ -1,23 +1,29 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
-COPY apps/converter-go/go.mod apps/converter-go/go.sum ./
+COPY go.work ./
+COPY apps/internal/httpx/ ./apps/internal/httpx/
+COPY apps/converter-go/go.mod apps/converter-go/go.sum ./apps/converter-go/
+WORKDIR /app/apps/converter-go
 RUN go mod download
 COPY apps/converter-go/*.go ./
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o converter-go .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /out/converter-go .
 
 FROM golang:1.25-alpine AS dev
 WORKDIR /app
-COPY apps/converter-go/go.mod apps/converter-go/go.sum ./
+COPY go.work ./
+COPY apps/internal/httpx/ ./apps/internal/httpx/
+COPY apps/converter-go/go.mod apps/converter-go/go.sum ./apps/converter-go/
+WORKDIR /app/apps/converter-go
 RUN go mod download
 COPY apps/converter-go/*.go ./
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o converter-go .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/converter-go .
 EXPOSE 8080
 CMD ["./converter-go"]
 
 FROM alpine:3.21 AS prod
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
-COPY --from=builder /app/converter-go .
+COPY --from=builder /out/converter-go .
 EXPOSE 8080
 USER nobody
 CMD ["./converter-go"]

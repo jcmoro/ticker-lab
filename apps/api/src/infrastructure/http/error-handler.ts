@@ -1,5 +1,6 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { RatesNotFoundError } from '../../domain/exchange-rate/errors.js';
+import { PaginationError } from './pagination.js';
 
 interface ProblemDetails {
   type: string;
@@ -30,6 +31,13 @@ export function errorHandler(error: FastifyError, _request: FastifyRequest, repl
       .status(404)
       .header('content-type', 'application/problem+json')
       .send(problemDetails(404, 'Not Found', error.message, 'RATES_NOT_FOUND'));
+  }
+
+  if (error instanceof PaginationError) {
+    return reply
+      .status(400)
+      .header('content-type', 'application/problem+json')
+      .send(problemDetails(400, 'Bad Request', error.message, error.code));
   }
 
   _request.log.error(error);

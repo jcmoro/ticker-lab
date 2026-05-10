@@ -44,14 +44,6 @@ type HealthResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
-type ProblemDetails struct {
-	Type   string `json:"type"`
-	Title  string `json:"title"`
-	Status int    `json:"status"`
-	Detail string `json:"detail"`
-	Code   string `json:"code"`
-}
-
 // FRED series
 var fredSeries = []SeriesMeta{
 	// Tier 1

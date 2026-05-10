@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ticker-lab/httpx"
 )
 
 func main() {
@@ -63,7 +64,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/macro/indicators", handleIndicators(repo))
 	mux.HandleFunc("GET /api/v1/macro/{source}/{id}/history", handleHistory(repo))
 
-	handler := corsMiddleware(mux)
+	handler := httpx.CORSMiddleware(mux)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -72,19 +73,6 @@ func main() {
 
 	log.Printf("Macro Go listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, handler))
-}
-
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func runIngestFRED(repo *Repository, client *FREDClient) {

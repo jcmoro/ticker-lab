@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ticker-lab/httpx"
 )
 
 type ConversionResponse struct {
@@ -28,14 +28,6 @@ type HealthResponse struct {
 	Status    string `json:"status"`
 	Engine    string `json:"engine"`
 	Timestamp string `json:"timestamp"`
-}
-
-type ProblemDetails struct {
-	Type   string `json:"type"`
-	Title  string `json:"title"`
-	Status int    `json:"status"`
-	Detail string `json:"detail"`
-	Code   string `json:"code"`
 }
 
 type rateRow struct {
@@ -65,27 +57,14 @@ func main() {
 		port = "8080"
 	}
 
-	handler := corsMiddleware(mux)
+	handler := httpx.CORSMiddleware(mux)
 
 	log.Printf("Converter Go listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, HealthResponse{
+	httpx.WriteJSON(w, http.StatusOK, HealthResponse{
 		Status:    "ok",
 		Engine:    "go",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
@@ -99,13 +78,8 @@ func handleConvert(pool *pgxpool.Pool) http.HandlerFunc {
 		amountStr := r.URL.Query().Get("amount")
 
 		if from == "" || to == "" {
-			writeJSON(w, http.StatusBadRequest, ProblemDetails{
-				Type:   "https://tickerlab.dev/problems/bad-request",
-				Title:  "Bad Request",
-				Status: 400,
-				Detail: "Both 'from' and 'to' query parameters are required",
-				Code:   "MISSING_PARAMETERS",
-			})
+			httpx.WriteProblem(w, http.StatusBadRequest, "MISSING_PARAMETERS",
+				"Both 'from' and 'to' query parameters are required")
 			return
 		}
 
@@ -119,24 +93,14 @@ func handleConvert(pool *pgxpool.Pool) http.HandlerFunc {
 		rates, err := getLatestRates(r.Context(), pool)
 		if err != nil {
 			log.Printf("Database error: %v", err)
-			writeJSON(w, http.StatusInternalServerError, ProblemDetails{
-				Type:   "https://tickerlab.dev/problems/internal-server-error",
-				Title:  "Internal Server Error",
-				Status: 500,
-				Detail: "An unexpected error occurred",
-				Code:   "INTERNAL_ERROR",
-			})
+			httpx.WriteProblem(w, http.StatusInternalServerError, "INTERNAL_ERROR",
+				"An unexpected error occurred")
 			return
 		}
 
 		if len(rates) == 0 {
-			writeJSON(w, http.StatusNotFound, ProblemDetails{
-				Type:   "https://tickerlab.dev/problems/not-found",
-				Title:  "Not Found",
-				Status: 404,
-				Detail: "No exchange rates available",
-				Code:   "RATES_NOT_FOUND",
-			})
+			httpx.WriteProblem(w, http.StatusNotFound, "RATES_NOT_FOUND",
+				"No exchange rates available")
 			return
 		}
 
@@ -151,13 +115,8 @@ func handleConvert(pool *pgxpool.Pool) http.HandlerFunc {
 		toRate, toOk := rateMap[to]
 
 		if !fromOk || !toOk {
-			writeJSON(w, http.StatusNotFound, ProblemDetails{
-				Type:   "https://tickerlab.dev/problems/not-found",
-				Title:  "Not Found",
-				Status: 404,
-				Detail: fmt.Sprintf("Cannot convert %s to %s. Currency not available.", from, to),
-				Code:   "CURRENCY_NOT_FOUND",
-			})
+			httpx.WriteProblem(w, http.StatusNotFound, "CURRENCY_NOT_FOUND",
+				fmt.Sprintf("Cannot convert %s to %s. Currency not available.", from, to))
 			return
 		}
 
@@ -165,7 +124,7 @@ func handleConvert(pool *pgxpool.Pool) http.HandlerFunc {
 		result := math.Round(amount*rate*100) / 100
 		roundedRate := math.Round(rate*1_000_000) / 1_000_000
 
-		writeJSON(w, http.StatusOK, ConversionResponse{
+		httpx.WriteJSON(w, http.StatusOK, ConversionResponse{
 			From:   from,
 			To:     to,
 			Amount: amount,
@@ -200,10 +159,4 @@ func getLatestRates(ctx context.Context, pool *pgxpool.Pool) ([]rateRow, error) 
 		rates = append(rates, r)
 	}
 	return rates, rows.Err()
-}
-
-func writeJSON(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
 }

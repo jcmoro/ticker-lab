@@ -176,6 +176,9 @@ docs/                         Architecture, API, runbook, ADRs, roadmap
 - [ADR-001: Tech Stack](docs/decisions/001-tech-stack.md)
 - [ADR-002: Frontend SSR](docs/decisions/002-frontend-ssr.md)
 
+## Other directories
+- **`skills/`** -- Reusable agent skills developed during the course (changelog, feature-spec).
+
 ## License
 
 MIT

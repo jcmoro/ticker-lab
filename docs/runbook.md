@@ -20,6 +20,16 @@ make dev
 - Health check: http://localhost:3000/health
 - Exchange rates API: http://localhost:3000/api/v1/exchange-rates/latest
 
+### Seed dev DB (first run after `make dev`)
+
+```bash
+make seed-dev
+```
+
+Runs FX (Frankfurter), crypto (CoinGecko), and macro (FRED + ECB) ingestion in sequence. Without this, `/crypto`, `/macro` and detail pages render empty because the dev DB starts with zero rows.
+
+Tolerant of partial failures — if `FRED_API_KEY` is missing the macro step is skipped with a warning; FX and crypto still seed.
+
 ### Stop
 
 ```bash
