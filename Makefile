@@ -1,4 +1,4 @@
-.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto job-crypto-backfill job-macro-ingest job-macro-ingest-bde job-macro-backfill job-esios job-esios-backfill seed-dev load-test load-test-smoke docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
+.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto job-crypto-backfill job-macro-ingest job-macro-ingest-bde job-macro-backfill job-esios job-esios-backfill job-cnmv job-cnmv-backfill seed-dev load-test load-test-smoke docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
 
 .DEFAULT_GOAL := help
 
@@ -39,6 +39,8 @@ help: ## Show available targets
 	@echo "  \033[36mjob-macro-backfill\033[0m Backfill all macro indicators history (local)"
 	@echo "  \033[36mjob-esios\033[0m          Ingest ESIOS Spanish electricity (requires ESIOS_API_KEY)"
 	@echo "  \033[36mjob-esios-backfill\033[0m Backfill ESIOS indicators (2020 → now, chunked monthly)"
+	@echo "  \033[36mjob-cnmv\033[0m           Ingest CNMV Spanish funds (current + previous month)"
+	@echo "  \033[36mjob-cnmv-backfill\033[0m  Backfill CNMV fund history (default 2020 → now)"
 	@echo ""
 	@echo "  \033[1mLoad Testing\033[0m"
 	@echo "  \033[36mload-test\033[0m          Run k6 load test (full: smoke + ramp-up)"
@@ -153,6 +155,12 @@ job-esios: ## Ingest ESIOS Spanish electricity indicators (requires ESIOS_API_KE
 
 job-esios-backfill: ## Backfill ESIOS indicators history (2020 → now, chunked monthly)
 	docker compose run --rm esios-go ./esios-go backfill
+
+job-cnmv: ## Ingest current + previous CNMV monthly fund file
+	docker compose run --rm cnmv-go ./cnmv-go ingest
+
+job-cnmv-backfill: ## Backfill CNMV monthly fund files (default fromYear=2020)
+	docker compose run --rm cnmv-go ./cnmv-go backfill 2020
 
 seed-dev: ## Seed dev DB with FX + crypto + macro (requires `make dev` running)
 	@echo "→ Seeding FX rates (Frankfurter)..."

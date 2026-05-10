@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FondMens>
+  <FechaDatos>202511</FechaDatos>
+  <Entidad>
+    <Tipo>FI</Tipo>
+    <NumeroRegistro>9</NumeroRegistro>
+    <Compartimento>
+      <NumeroCompartimento>0</NumeroCompartimento>
+      <Clase>
+        <NumeroClase>1</NumeroClase>
+        <ISIN>ES0138841038</ISIN>
+        <VLDiario>
+          <VL_Dia1>30.5744</VL_Dia1>
+          <VL_Dia2>0</VL_Dia2>
+          <VL_Dia3>30.5484</VL_Dia3>
+          <VL_Dia4>30.5523</VL_Dia4>
+          <VL_Dia5>30.5611</VL_Dia5>
+          <VL_Dia30>30.5611</VL_Dia30>
+          <VL_Dia31>0</VL_Dia31>
+        </VLDiario>
+        <ParticipesDiario>
+          <Participes_Dia1>1566</Participes_Dia1>
+          <Participes_Dia3>1567</Participes_Dia3>
+          <Participes_Dia4>1567</Participes_Dia4>
+          <Participes_Dia5>1568</Participes_Dia5>
+          <Participes_Dia30>1569</Participes_Dia30>
+        </ParticipesDiario>
+        <PatrimonioDiario>
+          <Patrimonio_Dia1>80377413.14</Patrimonio_Dia1>
+          <Patrimonio_Dia3>80350200.00</Patrimonio_Dia3>
+          <Patrimonio_Dia4>80360100.50</Patrimonio_Dia4>
+          <Patrimonio_Dia5>80370000.00</Patrimonio_Dia5>
+          <Patrimonio_Dia30>80316538.48</Patrimonio_Dia30>
+        </PatrimonioDiario>
+      </Clase>
+    </Compartimento>
+  </Entidad>
+</FondMens>

@@ -4,6 +4,52 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-11 — Phase 12 (CNMV): Spanish investment funds microservice
+
+**Summary:** New bounded context — Spanish investment funds from CNMV's monthly public-information files. Go microservice (`cnmv-go`, port 8130) scrapes the HTML listing page for tokenized ZIP URLs, downloads the archive, streams the XML, and exposes AIP-aligned REST endpoints with cursor pagination.
+
+**Real-data validation:** Smoke-tested end-to-end against the live November 2025 file:
+- FONDREGISTRO: 2.2 MB → **3,112 funds** parsed
+- FONDMENS: 15.3 MB → **88,227 NAV observations** parsed
+- Full ingest (download + parse + upsert) in ~5 seconds locally
+- Endpoint `/api/v1/funds?gestora=MARCH` returns real MARCH ASSET MANAGEMENT funds with NAV, patrimonio, change_pct
+
+**New service:** `apps/cnmv-go/`
+- `GET /health`
+- `GET /api/v1/funds?tipo=&gestora=&q=&page_size=&page_token=` — list with `next_page_token` + exact `total_size`
+- `GET /api/v1/funds/{isin}` — detail (ISIN validated against ISO 6166 `^[A-Z]{2}[A-Z0-9]{9}[0-9]$`)
+- `GET /api/v1/funds/{isin}/nav-observations?start_date=&end_date=&page_size=&page_token=` — time-series with date-cursor pagination
+- `./cnmv-go ingest` — current + previous month, idempotent upsert
+- `./cnmv-go backfill [fromYear]` — monthly walk from `fromYear` (default 2020) to now, ~2s pause between months
+
+**Schema (new):**
+- `cnmv_funds` (PK `isin CHAR(12)`) — catalog with gestora, depositario, ETF flag, currency, and reserved-for-FONDTRIM columns (TER, comisión gestión/depósito, vocación inversora)
+- `cnmv_nav_observations` (UNIQUE `(isin, date)`) — NAV/partícipes/patrimonio per (ISIN, day)
+
+**Key technical decisions:**
+- **HTML scraping with regex** — CNMV download URLs are tokenized (`?e=OPAQUE_TOKEN`) and rotate; the listing page is the only deterministic discovery surface. Regex matches `_lnkZip` ids + Spanish month names in the `title` attribute.
+- **XML streaming via `DecodeElement` per `<Entidad>` / `<Clase>`** — the 15 MB FONDMENS doesn't fit comfortably in a single decode tree, but per-clase blocks keep memory <100 MB. `daysFloat[32]` / `daysInt[32]` arrays decode the 31 day-tagged fields without declaring 31 struct members each.
+- **`VL_DiaN = 0` filtered** as non-trading day; days beyond the month's length (Feb 30/31, Apr 31, ...) also dropped using `time.Date` arithmetic.
+- **FONDTRIM (quarterly) deferred** — TER, comisiones, vocación inversora live there; schema already reserves the columns to avoid future migration.
+- **AIP-158 pagination from inception** — critical because 3,112 ISINs would overflow without pagination.
+
+**Out of scope (DGSFP):** Pension plans are regulated by DGSFP, not CNMV. DGSFP publishes only quarterly DECs, not daily NAV files. No equivalent ingestion path exists today.
+
+**Tests added (8):** `TestHealthEndpoint`, `TestParseRegistro`, `TestParseMens`, `TestParseMens_ShortMonthDropsExtraDays`, `TestListMonthlyZips_HTMLScraping`, `TestUpsertAndFind`, `TestFundDetailEndpoint_InvalidISIN`, `TestFundsEndpoint_PaginationCursor`. Fixtures `testdata/FONDREGISTRO_sample.xml` and `testdata/FONDMENS_sample.xml` based on the real 202511 file structure.
+
+**Operational:**
+- `make job-cnmv` / `make job-cnmv-backfill`
+- `docker-compose.yml` — new `cnmv-go` on port 8130
+- `render.yaml` — new `tickerlab-cnmv` web service
+- `.env.example` — `CNMV_GO_URL`
+
+**Pending follow-ups (separate PR):**
+- SSR pages `/funds` and `/funds/{isin}` with search/filter and Chart.js NAV history
+- Backfill 2020-presente in production (~5M rows, ~30 min)
+- FONDTRIM parser for fees and categories
+
+---
+
 ## 2026-05-11 — Phase 12 (ESIOS): Spanish electricity microservice
 
 **Summary:** New bounded context — Spanish electricity data from REE's e·sios API. Go microservice (`esios-go`, port 8120) ingests hourly observations and serves them via AIP-aligned REST endpoints with mandatory cursor pagination (per `api-design-standards.md`).

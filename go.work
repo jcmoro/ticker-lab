@@ -1,5 +1,6 @@
 go 1.25.0
 
+use ./apps/cnmv-go
 use ./apps/converter-go
 use ./apps/crypto-go
 use ./apps/esios-go

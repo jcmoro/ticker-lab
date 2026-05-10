@@ -27,6 +27,8 @@ services:
         value: "https://tickerlab-macro.onrender.com"
       - key: ESIOS_GO_URL
         value: "https://tickerlab-esios.onrender.com"
+      - key: CNMV_GO_URL
+        value: "https://tickerlab-cnmv.onrender.com"
     healthCheckPath: /health
     buildFilter:
       paths:
@@ -119,3 +121,23 @@ services:
         - apps/internal/httpx/**
         - go.work
         - docker/esios-go/**
+
+  - type: web
+    name: tickerlab-cnmv
+    runtime: docker
+    dockerfilePath: ./docker/cnmv-go/Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: "8130"
+      - key: DATABASE_URL
+        sync: false
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - apps/cnmv-go/**
+        - apps/internal/httpx/**
+        - go.work
+        - docker/cnmv-go/**
