@@ -1,4 +1,4 @@
-.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto-backfill job-macro-ingest job-macro-backfill load-test load-test-smoke docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
+.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto job-crypto-backfill job-macro-ingest job-macro-backfill seed-dev load-test load-test-smoke docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
 
 .DEFAULT_GOAL := help
 
@@ -7,6 +7,7 @@ help: ## Show available targets
 	@echo "  \033[1mDevelopment\033[0m"
 	@echo "  \033[36msetup\033[0m              Build containers and install dependencies"
 	@echo "  \033[36mdev\033[0m                Start development environment"
+	@echo "  \033[36mseed-dev\033[0m           Seed dev DB (FX + crypto + macro) after \`make dev\`"
 	@echo "  \033[36mdown\033[0m               Stop all containers"
 	@echo "  \033[36mclean\033[0m              Remove containers, volumes, and node_modules"
 	@echo ""
@@ -140,6 +141,15 @@ job-macro-ingest: ## Ingest FRED + ECB macro indicators
 
 job-macro-backfill: ## Backfill all macro indicators history
 	docker compose run --rm macro-go ./macro-go backfill
+
+seed-dev: ## Seed dev DB with FX + crypto + macro (requires `make dev` running)
+	@echo "→ Seeding FX rates (Frankfurter)..."
+	@$(MAKE) --no-print-directory job-ingest || echo "  FX ingest failed"
+	@echo "→ Seeding crypto prices (CoinGecko)..."
+	@$(MAKE) --no-print-directory job-crypto || echo "  Crypto ingest failed"
+	@echo "→ Seeding macro indicators (FRED + ECB)..."
+	@$(MAKE) --no-print-directory job-macro-ingest || echo "  Macro ingest failed (FRED_API_KEY may be missing)"
+	@echo "Seed complete."
 
 # ─── Load Testing ───────────────────────────────────────────
 
