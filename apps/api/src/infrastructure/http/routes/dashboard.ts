@@ -214,7 +214,117 @@ export function dashboardRoutes(deps: DashboardDeps) {
         }
       },
     );
+
+    const cnmvBaseUrl = process.env.CNMV_GO_URL ?? 'http://localhost:8130';
+
+    server.get('/funds', async (request: FastifyRequest, reply: FastifyReply) => {
+      const q = request.query as {
+        tipo?: string;
+        gestora?: string;
+        q?: string;
+        page_size?: string;
+        page_token?: string;
+      };
+      const params = new URLSearchParams();
+      if (q.tipo) params.set('tipo', q.tipo);
+      if (q.gestora) params.set('gestora', q.gestora);
+      if (q.q) params.set('q', q.q);
+      params.set('page_size', q.page_size ?? '50');
+      if (q.page_token) params.set('page_token', q.page_token);
+
+      try {
+        const res = await fetchService(`${cnmvBaseUrl}/api/v1/funds?${params.toString()}`);
+        const data = (await res.json()) as {
+          funds: FundSummary[];
+          next_page_token: string;
+          total_size?: number;
+        };
+        return reply.viewAsync('pages/funds', {
+          title: 'Funds',
+          funds: data.funds ?? [],
+          totalSize: data.total_size ?? 0,
+          nextPageToken: data.next_page_token ?? '',
+          filters: { tipo: q.tipo ?? '', gestora: q.gestora ?? '', q: q.q ?? '' },
+          cnmvBaseUrl,
+        });
+      } catch {
+        return reply.viewAsync('pages/funds', {
+          title: 'Funds',
+          funds: [],
+          totalSize: 0,
+          nextPageToken: '',
+          filters: { tipo: q.tipo ?? '', gestora: q.gestora ?? '', q: q.q ?? '' },
+          cnmvBaseUrl,
+        });
+      }
+    });
+
+    server.get<{ Params: { isin: string } }>(
+      '/funds/:isin',
+      async (request: FastifyRequest<{ Params: { isin: string } }>, reply: FastifyReply) => {
+        const isin = request.params.isin.toUpperCase();
+        const { days = '365' } = request.query as { days?: string };
+        const numDays = Math.min(Number(days) || 365, 365 * 10);
+        const startDate = daysAgo(numDays);
+        const endDate = today();
+
+        try {
+          const [detailRes, historyRes] = await Promise.all([
+            fetchService(`${cnmvBaseUrl}/api/v1/funds/${isin}`),
+            fetchService(
+              `${cnmvBaseUrl}/api/v1/funds/${isin}/nav-observations?start_date=${startDate}&end_date=${endDate}&page_size=3650`,
+            ),
+          ]);
+          const fund = (await detailRes.json()) as FundDetail;
+          const history = (await historyRes.json()) as { points: { date: string; nav: number }[] };
+
+          return reply.viewAsync('pages/fund-detail', {
+            title: fund.denominacion ?? isin,
+            fund,
+            history: history.points ?? [],
+            days: String(numDays),
+            cnmvBaseUrl,
+          });
+        } catch {
+          return reply.viewAsync('pages/fund-detail', {
+            title: isin,
+            fund: { isin, denominacion: isin, tipo: '', currency: 'EUR' },
+            history: [],
+            days: String(numDays),
+            cnmvBaseUrl,
+          });
+        }
+      },
+    );
   };
+}
+
+interface FundSummary {
+  isin: string;
+  tipo: string;
+  denominacion: string;
+  gestora_nombre?: string;
+  is_etf: boolean;
+  latest_nav: number;
+  latest_date?: string;
+  prev_nav?: number;
+  change_pct?: number;
+  patrimonio?: number;
+  participes?: number;
+}
+
+interface FundDetail {
+  isin: string;
+  tipo: string;
+  denominacion: string;
+  denominacion_compartimento?: string;
+  denominacion_clase?: string;
+  is_etf?: boolean;
+  gestora_nombre?: string;
+  gestora_grupo?: string;
+  depositario_nombre?: string;
+  depositario_grupo?: string;
+  currency: string;
 }
 
 interface CryptoPrice {

@@ -1,0 +1,109 @@
+<% layout('../layouts/main', { title: it.title }) %>
+
+<section>
+  <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.5rem; font-weight: 700;">Spanish Investment Funds</h2>
+    <span style="color: #64748b; font-size: 0.875rem;">
+      CNMV &middot; <%= it.totalSize.toLocaleString() %> funds
+    </span>
+  </div>
+
+  <form method="get" action="/funds" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; align-items: end;">
+    <div>
+      <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Search</label>
+      <input type="text" name="q" value="<%= it.filters.q %>" placeholder="Fund name…"
+        style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+    </div>
+    <div>
+      <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Gestora</label>
+      <input type="text" name="gestora" value="<%= it.filters.gestora %>" placeholder="e.g. BBVA, Santander…"
+        style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+    </div>
+    <div>
+      <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Type</label>
+      <select name="tipo" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; background: #fff;">
+        <option value="" <%= it.filters.tipo === '' ? 'selected' : '' %>>All</option>
+        <option value="FI" <%= it.filters.tipo === 'FI' ? 'selected' : '' %>>FI (Fund)</option>
+        <option value="SICAV" <%= it.filters.tipo === 'SICAV' ? 'selected' : '' %>>SICAV</option>
+        <option value="FHF" <%= it.filters.tipo === 'FHF' ? 'selected' : '' %>>FHF (Hedge)</option>
+        <option value="SHF" <%= it.filters.tipo === 'SHF' ? 'selected' : '' %>>SHF (SICAV Hedge)</option>
+      </select>
+    </div>
+    <button type="submit" style="padding: 0.5rem 1.25rem; background: #f59e0b; color: #fff; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">Filter</button>
+  </form>
+
+  <% if (it.funds.length === 0) { %>
+    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; text-align: center;">
+      <% if (it.totalSize === 0 && !it.filters.q && !it.filters.gestora && !it.filters.tipo) { %>
+        <p style="color: #64748b;">No funds in the database yet. Run <code style="background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 3px;">make job-cnmv</code> to ingest the latest CNMV monthly file.</p>
+      <% } else { %>
+        <p style="color: #64748b;">No funds match the current filters.</p>
+      <% } %>
+    </div>
+  <% } else { %>
+    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+        <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+          <tr>
+            <th style="text-align: left; padding: 0.75rem 1rem; font-weight: 600; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">ISIN</th>
+            <th style="text-align: left; padding: 0.75rem 1rem; font-weight: 600; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Name</th>
+            <th style="text-align: left; padding: 0.75rem 1rem; font-weight: 600; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Gestora</th>
+            <th style="text-align: right; padding: 0.75rem 1rem; font-weight: 600; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">NAV</th>
+            <th style="text-align: right; padding: 0.75rem 1rem; font-weight: 600; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Δ</th>
+            <th style="text-align: right; padding: 0.75rem 1rem; font-weight: 600; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patrimonio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% it.funds.forEach(function(f) { %>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 0.75rem 1rem; font-family: ui-monospace, monospace; font-size: 0.8rem; color: #475569;">
+                <a href="/funds/<%= f.isin %>" style="color: #f59e0b; text-decoration: none;"><%= f.isin %></a>
+              </td>
+              <td style="padding: 0.75rem 1rem; color: #0f172a; font-weight: 500;">
+                <%= f.denominacion %>
+                <% if (f.is_etf) { %>
+                  <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 3px; background: #f0fdf4; color: #10b981; margin-left: 0.25rem;">ETF</span>
+                <% } %>
+              </td>
+              <td style="padding: 0.75rem 1rem; color: #64748b; font-size: 0.8rem;">
+                <%= f.gestora_nombre ?? '' %>
+              </td>
+              <td style="padding: 0.75rem 1rem; text-align: right; color: #0f172a; font-weight: 600;">
+                <%= (f.latest_nav ?? 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) %>
+              </td>
+              <td style="padding: 0.75rem 1rem; text-align: right; font-weight: 500;">
+                <% if ((f.change_pct ?? 0) !== 0) { %>
+                  <span style="<%= (f.change_pct ?? 0) >= 0 ? 'color: #16a34a;' : 'color: #dc2626;' %>">
+                    <%= (f.change_pct ?? 0) >= 0 ? '+' : '' %><%= (f.change_pct ?? 0).toFixed(2) %>%
+                  </span>
+                <% } else { %>
+                  <span style="color: #cbd5e1;">—</span>
+                <% } %>
+              </td>
+              <td style="padding: 0.75rem 1rem; text-align: right; color: #475569; font-size: 0.8rem;">
+                <% if ((f.patrimonio ?? 0) > 0) { %>
+                  €<%= ((f.patrimonio ?? 0) / 1_000_000).toLocaleString('es-ES', { maximumFractionDigits: 1 }) %>M
+                <% } else { %>
+                  <span style="color: #cbd5e1;">—</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (it.nextPageToken) { %>
+      <% var qs = new URLSearchParams(); if (it.filters.tipo) qs.set('tipo', it.filters.tipo); if (it.filters.gestora) qs.set('gestora', it.filters.gestora); if (it.filters.q) qs.set('q', it.filters.q); qs.set('page_token', it.nextPageToken); %>
+      <div style="margin-top: 1rem; text-align: center;">
+        <a href="/funds?<%= qs.toString() %>" style="display: inline-block; padding: 0.5rem 1.25rem; background: #fff; color: #f59e0b; border: 1px solid #f59e0b; border-radius: 6px; text-decoration: none; font-size: 0.875rem; font-weight: 500;">
+          Next page →
+        </a>
+      </div>
+    <% } %>
+  <% } %>
+
+  <p style="color: #94a3b8; font-size: 0.75rem; margin-top: 1.5rem;">
+    Source: CNMV monthly public files &middot; Powered by Go
+  </p>
+</section>

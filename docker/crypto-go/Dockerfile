@@ -1,6 +1,5 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
-COPY go.work ./
 COPY apps/internal/httpx/ ./apps/internal/httpx/
 COPY apps/crypto-go/go.mod apps/crypto-go/go.sum ./apps/crypto-go/
 WORKDIR /app/apps/crypto-go
@@ -10,13 +9,12 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /out/crypto-go .
 
 FROM golang:1.25-alpine AS dev
 WORKDIR /app
-COPY go.work ./
 COPY apps/internal/httpx/ ./apps/internal/httpx/
 COPY apps/crypto-go/go.mod apps/crypto-go/go.sum ./apps/crypto-go/
 WORKDIR /app/apps/crypto-go
 RUN go mod download
 COPY apps/crypto-go/*.go ./
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/crypto-go .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o ./crypto-go .
 EXPOSE 8090
 CMD ["./crypto-go"]
 

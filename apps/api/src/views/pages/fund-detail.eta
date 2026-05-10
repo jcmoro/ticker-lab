@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= it.fund.denominacion %> — Ticker Lab</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
+    header span { color: #64748b; font-size: 0.875rem; }
+    nav { margin-left: auto; display: flex; gap: 1rem; }
+    nav a { color: #64748b; text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+    nav a:hover { color: #f59e0b; }
+    main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    .period-btn {
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-decoration: none;
+      background: #fff;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      transition: all 0.15s;
+    }
+    .period-btn:hover { border-color: #f59e0b; color: #f59e0b; }
+    .period-btn.active { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.5rem 1.5rem; margin-top: 1rem; }
+    .meta-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .meta-value { font-size: 0.875rem; color: #0f172a; font-weight: 500; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1><a href="/" style="color: inherit; text-decoration: none;">Ticker Lab</a></h1>
+    <span>Financial Data Dashboard</span>
+    <nav>
+      <a href="/">Rates</a>
+      <a href="/crypto">Crypto</a>
+      <a href="/macro">Macro</a>
+      <a href="/funds">Funds</a>
+      <a href="/converter">Converter</a>
+      <a href="/api/docs">API</a>
+    </nav>
+  </header>
+  <main>
+    <section>
+      <p style="margin-bottom: 1.5rem;">
+        <a href="/funds" style="color: #f59e0b; text-decoration: none; font-size: 0.875rem;">&larr; Back to funds</a>
+      </p>
+
+      <div style="margin-bottom: 0.5rem;">
+        <h2 style="font-size: 1.5rem; font-weight: 700; display: inline;"><%= it.fund.denominacion %></h2>
+        <% if (it.fund.tipo) { %>
+          <span style="font-size: 0.75rem; font-weight: 500; padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.5rem; background: #fef3c7; color: #b45309;">
+            <%= it.fund.tipo %>
+          </span>
+        <% } %>
+        <% if (it.fund.is_etf) { %>
+          <span style="font-size: 0.75rem; font-weight: 500; padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.25rem; background: #f0fdf4; color: #10b981;">ETF</span>
+        <% } %>
+      </div>
+      <p style="color: #64748b; font-size: 0.875rem; font-family: ui-monospace, monospace; margin-bottom: 1.5rem;">
+        ISIN <%= it.fund.isin %>
+      </p>
+
+      <% if (it.history.length > 0) { %>
+        <% var latest = it.history[it.history.length - 1]; %>
+        <% var first = it.history[0]; %>
+        <% var change = first.nav > 0 ? ((latest.nav - first.nav) / first.nav * 100) : 0; %>
+        <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.5rem;">
+          <span style="font-size: 2rem; font-weight: 700; color: #0f172a;">
+            <%= latest.nav.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) %>
+            <span style="font-size: 1rem; color: #94a3b8; font-weight: 400;"><%= it.fund.currency %></span>
+          </span>
+          <% if (change !== 0) { %>
+            <span style="font-size: 1rem; font-weight: 500; <%= change >= 0 ? 'color: #16a34a;' : 'color: #dc2626;' %>">
+              <%= change >= 0 ? '+' : '' %><%= change.toFixed(2) %>% (period)
+            </span>
+          <% } %>
+        </div>
+        <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem;">
+          Latest NAV: <%= latest.date %> &middot; <%= it.history.length %> data points
+        </p>
+      <% } else { %>
+        <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem;">No NAV history yet</p>
+      <% } %>
+
+      <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; height: 350px;">
+        <canvas id="navChart"></canvas>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <a href="/funds/<%= it.fund.isin %>?days=30" class="period-btn<%= it.days === '30' ? ' active' : '' %>">1M</a>
+        <a href="/funds/<%= it.fund.isin %>?days=90" class="period-btn<%= it.days === '90' ? ' active' : '' %>">3M</a>
+        <a href="/funds/<%= it.fund.isin %>?days=180" class="period-btn<%= it.days === '180' ? ' active' : '' %>">6M</a>
+        <a href="/funds/<%= it.fund.isin %>?days=365" class="period-btn<%= it.days === '365' ? ' active' : '' %>">1Y</a>
+        <a href="/funds/<%= it.fund.isin %>?days=1095" class="period-btn<%= it.days === '1095' ? ' active' : '' %>">3Y</a>
+        <a href="/funds/<%= it.fund.isin %>?days=1825" class="period-btn<%= it.days === '1825' ? ' active' : '' %>">5Y</a>
+      </div>
+
+      <% if (it.fund.gestora_nombre || it.fund.depositario_nombre) { %>
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem;">
+          <h3 style="font-size: 1rem; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">Fund details</h3>
+          <div class="meta-grid">
+            <% if (it.fund.gestora_nombre) { %>
+              <div>
+                <div class="meta-label">Gestora</div>
+                <div class="meta-value"><%= it.fund.gestora_nombre %></div>
+                <% if (it.fund.gestora_grupo) { %>
+                  <div style="font-size: 0.75rem; color: #94a3b8;"><%= it.fund.gestora_grupo %></div>
+                <% } %>
+              </div>
+            <% } %>
+            <% if (it.fund.depositario_nombre) { %>
+              <div>
+                <div class="meta-label">Depositario</div>
+                <div class="meta-value"><%= it.fund.depositario_nombre %></div>
+                <% if (it.fund.depositario_grupo) { %>
+                  <div style="font-size: 0.75rem; color: #94a3b8;"><%= it.fund.depositario_grupo %></div>
+                <% } %>
+              </div>
+            <% } %>
+            <% if (it.fund.denominacion_compartimento) { %>
+              <div>
+                <div class="meta-label">Compartimento</div>
+                <div class="meta-value"><%= it.fund.denominacion_compartimento %></div>
+              </div>
+            <% } %>
+            <% if (it.fund.denominacion_clase) { %>
+              <div>
+                <div class="meta-label">Clase</div>
+                <div class="meta-value"><%= it.fund.denominacion_clase %></div>
+              </div>
+            <% } %>
+          </div>
+          <p style="color: #94a3b8; font-size: 0.7rem; margin-top: 1rem;">
+            TER, comisiones and vocación inversora come from CNMV's quarterly FONDTRIM file — not yet integrated.
+          </p>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+    var data = <%~ JSON.stringify(it.history) %>;
+    if (data.length > 0) {
+      var ctx = document.getElementById('navChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(function(d) { return d.date; }),
+          datasets: [{
+            label: 'NAV',
+            data: data.map(function(d) { return d.nav; }),
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: data.length > 90 ? 0 : 2,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              callbacks: {
+                label: function(c) { return c.parsed.y.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 4 }); }
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#94a3b8', maxTicksLimit: 10 }, grid: { color: '#f1f5f9' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#f1f5f9' } }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

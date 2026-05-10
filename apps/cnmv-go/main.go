@@ -93,7 +93,6 @@ func runBackfill(repo *Repository, client *CNMVClient, fromYear int) {
 func ingestPeriod(repo *Repository, client *CNMVClient, period time.Time) error {
 	year := period.Year()
 	month := int(period.Month())
-	periodTag := fmt.Sprintf("%04d%02d", year, month)
 
 	log.Printf("[CNMV %04d-%02d] Listing year %d...", year, month, year)
 	zips, err := client.ListMonthlyZips(year)
@@ -119,7 +118,11 @@ func ingestPeriod(repo *Repository, client *CNMVClient, period time.Time) error 
 		return fmt.Errorf("download: %w", err)
 	}
 
-	funds, _, err := ParseRegistro(registroXML)
+	// CNMV's listing page for a future/incomplete year falls back to the
+	// latest available year's URLs, so the requested (year, month) and the
+	// actual file's period can diverge. We trust the XML's FechaDatos for
+	// last_seen_period (and the observations' dates already come from it).
+	funds, xmlPeriod, err := ParseRegistro(registroXML)
 	if err != nil {
 		return fmt.Errorf("parse registro: %w", err)
 	}
@@ -127,11 +130,14 @@ func ingestPeriod(repo *Repository, client *CNMVClient, period time.Time) error 
 	if err != nil {
 		return fmt.Errorf("parse mens: %w", err)
 	}
+	if xmlPeriod == "" {
+		xmlPeriod = fmt.Sprintf("%04d%02d", year, month)
+	}
 
-	log.Printf("  Parsed %d funds and %d nav observations", len(funds), len(obs))
+	log.Printf("  Parsed %d funds and %d nav observations (period=%s)", len(funds), len(obs), xmlPeriod)
 
 	ctx := context.Background()
-	if err := repo.UpsertFunds(ctx, funds, periodTag); err != nil {
+	if err := repo.UpsertFunds(ctx, funds, xmlPeriod); err != nil {
 		return fmt.Errorf("upsert funds: %w", err)
 	}
 	if err := repo.UpsertNAVs(ctx, obs); err != nil {
