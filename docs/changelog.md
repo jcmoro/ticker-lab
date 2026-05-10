@@ -4,6 +4,50 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-11 — Phase 12 (ESIOS): Spanish electricity microservice
+
+**Summary:** New bounded context — Spanish electricity data from REE's e·sios API. Go microservice (`esios-go`, port 8120) ingests hourly observations and serves them via AIP-aligned REST endpoints with mandatory cursor pagination (per `api-design-standards.md`).
+
+**New service:** `apps/esios-go/`
+- `GET /health`
+- `GET /api/v1/electricity/indicators?category=&page_size=&page_token=` — list with `next_page_token` + `total_size`
+- `GET /api/v1/electricity/indicators/{indicator_id}/geos/{geo_id}/observations?start_date=&end_date=&page_size=&page_token=` — nested resource (AIP-122) with cursor over `datetime_utc`
+- `./esios-go ingest` — incremental sync since `last_synced_at`
+- `./esios-go backfill` — 2020 → now, chunked monthly to dodge undocumented response-size limits
+
+**Tier 1 indicators (5, all geo_id=8741 Peninsula):**
+- `1001` PVPC 2.0TD (pricing, EUR/MWh)
+- `600` Demanda real (demand, MW)
+- `10211` OMIE precio horario final (pricing, EUR/MWh)
+- `1293` Generación programada PBF total (generation, MW)
+- `10355` Factor emisiones CO2 (emissions, tCO2/MWh)
+
+**Schema (new):**
+- `esios_series` (PK `(indicator_id, geo_id)`) — catalog of tracked series
+- `esios_observations` (UNIQUE `(indicator_id, geo_id, datetime_utc)`) — `TIMESTAMPTZ` for hourly granularity, stored in UTC
+
+**Auth:** `x-api-key` header. Token obtained via email to `consultasios@ree.es` (~1–3 days). The service starts and serves reads without it; only `ingest`/`backfill` require it.
+
+**Implementation notes:**
+- Defensive geo_id filter — REE occasionally ignores `geo_ids[]` and returns every system; client re-filters.
+- Backfill chunks by month (~720 hourly points × geo) — `/indicators/{id}` has no documented pagination.
+- Reuses `apps/internal/httpx` for CORS, `WriteJSON`, `WriteProblem`, `ParsePagination`, `Page`.
+
+**Tests added (8):** `TestHealthEndpoint`, `TestCorsMiddleware`, `TestFetchIndicator_FixtureParsing`, `TestFetchIndicator_NonOKStatus`, `TestSeedAndFindIndicators`, `TestSaveObservationsUpsertsValue`, `TestIndicatorsEndpointPagination`, `TestIndicatorsEndpoint_NegativePageSizeReturns400`. Fixture `testdata/indicator_1001.json` recorded from a real ESIOS response shape.
+
+**Operational:**
+- `make job-esios` / `make job-esios-backfill`
+- `docker-compose.yml` — new `esios-go` service on port 8120
+- `render.yaml` — new `tickerlab-esios` web service with build filter
+- `.env.example` — `ESIOS_API_KEY` and `ESIOS_GO_URL`
+
+**Pending follow-ups (separate PR):**
+- SSR pages `/electricity` and `/electricity/:id/:geo` (Chart.js)
+- GitHub Actions cron for daily ingest
+- Smoke test against real API once a token is provisioned
+
+---
+
 ## 2026-05-10 — Phase 12 (BdE): Spanish rates as third macro source
 
 **Summary:** `macro-go` extended with a third upstream — Banco de España (BIEST) — adding 10 Spain-specific rate series under the new `spanish_rates` category. No new service; same schema; reuses existing `/api/v1/macro/...` endpoints.

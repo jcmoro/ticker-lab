@@ -25,6 +25,8 @@ services:
         value: "https://tickerlab-crypto.onrender.com"
       - key: MACRO_GO_URL
         value: "https://tickerlab-macro.onrender.com"
+      - key: ESIOS_GO_URL
+        value: "https://tickerlab-esios.onrender.com"
     healthCheckPath: /health
     buildFilter:
       paths:
@@ -95,3 +97,25 @@ services:
         - apps/internal/httpx/**
         - go.work
         - docker/macro-go/**
+
+  - type: web
+    name: tickerlab-esios
+    runtime: docker
+    dockerfilePath: ./docker/esios-go/Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: "8120"
+      - key: DATABASE_URL
+        sync: false
+      - key: ESIOS_API_KEY
+        sync: false
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - apps/esios-go/**
+        - apps/internal/httpx/**
+        - go.work
+        - docker/esios-go/**

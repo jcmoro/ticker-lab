@@ -1,0 +1,14 @@
+{
+  "indicator": {
+    "id": 1001,
+    "name": "Término de facturación de energía activa del PVPC 2.0TD",
+    "short_name": "PVPC T. 2.0TD",
+    "values_updated_at": "2026-05-09T20:46:21.000+02:00",
+    "values": [
+      { "value": 87.43, "datetime_utc": "2026-05-08T22:00:00.000Z", "geo_id": 8741, "geo_name": "España"  },
+      { "value": 88.11, "datetime_utc": "2026-05-08T23:00:00.000Z", "geo_id": 8741, "geo_name": "España"  },
+      { "value": 91.20, "datetime_utc": "2026-05-09T00:00:00.000Z", "geo_id": 8741, "geo_name": "España"  },
+      { "value": 75.10, "datetime_utc": "2026-05-08T22:00:00.000Z", "geo_id": 8742, "geo_name": "Canarias" }
+    ]
+  }
+}

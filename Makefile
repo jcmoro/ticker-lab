@@ -1,4 +1,4 @@
-.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto job-crypto-backfill job-macro-ingest job-macro-backfill seed-dev load-test load-test-smoke docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
+.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto job-crypto-backfill job-macro-ingest job-macro-ingest-bde job-macro-backfill job-esios job-esios-backfill seed-dev load-test load-test-smoke docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
 
 .DEFAULT_GOAL := help
 
@@ -35,8 +35,10 @@ help: ## Show available targets
 	@echo "  \033[36mjob-backfill\033[0m       Backfill historical exchange rates (local)"
 	@echo "  \033[36mjob-crypto\033[0m         Fetch latest crypto prices (local)"
 	@echo "  \033[36mjob-crypto-backfill\033[0m Backfill historical crypto prices (local)"
-	@echo "  \033[36mjob-macro-ingest\033[0m   Ingest FRED + ECB macro indicators (local)"
+	@echo "  \033[36mjob-macro-ingest\033[0m   Ingest FRED + ECB + BdE macro indicators (local)"
 	@echo "  \033[36mjob-macro-backfill\033[0m Backfill all macro indicators history (local)"
+	@echo "  \033[36mjob-esios\033[0m          Ingest ESIOS Spanish electricity (requires ESIOS_API_KEY)"
+	@echo "  \033[36mjob-esios-backfill\033[0m Backfill ESIOS indicators (2020 → now, chunked monthly)"
 	@echo ""
 	@echo "  \033[1mLoad Testing\033[0m"
 	@echo "  \033[36mload-test\033[0m          Run k6 load test (full: smoke + ramp-up)"
@@ -145,6 +147,12 @@ job-macro-ingest-bde: ## Ingest only BdE Spanish rates
 
 job-macro-backfill: ## Backfill all macro indicators history (FRED + ECB + BdE)
 	docker compose run --rm macro-go ./macro-go backfill
+
+job-esios: ## Ingest ESIOS Spanish electricity indicators (requires ESIOS_API_KEY)
+	docker compose run --rm esios-go ./esios-go ingest
+
+job-esios-backfill: ## Backfill ESIOS indicators history (2020 → now, chunked monthly)
+	docker compose run --rm esios-go ./esios-go backfill
 
 seed-dev: ## Seed dev DB with FX + crypto + macro (requires `make dev` running)
 	@echo "→ Seeding FX rates (Frankfurter)..."
