@@ -177,7 +177,7 @@ docs/                         Architecture, API, runbook, ADRs, roadmap
 - [ADR-002: Frontend SSR](docs/decisions/002-frontend-ssr.md)
 
 ## Other directories
-- **`skills/`** -- Reusable agent skills developed during the course (changelog, feature-spec).
+- **`skills/`** -- Reusable agent skills developed (changelog, feature-spec).
 
 ## License
 

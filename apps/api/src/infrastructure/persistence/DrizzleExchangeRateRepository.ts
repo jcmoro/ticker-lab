@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { ExchangeRate } from '../../domain/exchange-rate/ExchangeRate.js';
 import type {
@@ -29,7 +29,9 @@ export class DrizzleExchangeRateRepository implements ExchangeRateRepository {
           schema.exchangeRates.quoteCurrency,
           schema.exchangeRates.date,
         ],
-        set: { rate: schema.exchangeRates.rate },
+        // EXCLUDED.rate is the incoming value; using schema.exchangeRates.rate
+        // here would compile to a self-assign and silently drop the update.
+        set: { rate: sql`excluded.rate` },
       });
   }
 

@@ -178,15 +178,23 @@ func TestSaveAndFindLatest(t *testing.T) {
 	pool := getTestPool(t)
 	repo := NewRepository(pool)
 
+	// Use a far-future date so this row is guaranteed to be MAX(date) in
+	// FindLatest regardless of whatever real data the dev DB already holds.
+	const testDate = "2099-12-31"
+	ctx := context.Background()
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, "DELETE FROM crypto_prices WHERE coin_id = 'test-coin' OR date = $1", testDate)
+	})
+
 	prices := []CryptoPrice{
-		{CoinID: "test-coin", Symbol: "TST", Name: "Test Coin", PriceEUR: 123.45, PriceUSD: 145.67, MarketCap: 1000000, Change24h: 2.5, Date: "2026-04-19"},
+		{CoinID: "test-coin", Symbol: "TST", Name: "Test Coin", PriceEUR: 123.45, PriceUSD: 145.67, MarketCap: 1000000, Change24h: 2.5, Date: testDate},
 	}
 
-	if err := repo.Save(context.Background(), prices); err != nil {
+	if err := repo.Save(ctx, prices); err != nil {
 		t.Fatalf("save failed: %v", err)
 	}
 
-	latest, err := repo.FindLatest(context.Background())
+	latest, err := repo.FindLatest(ctx)
 	if err != nil {
 		t.Fatalf("find latest failed: %v", err)
 	}
@@ -203,7 +211,4 @@ func TestSaveAndFindLatest(t *testing.T) {
 	if !found {
 		t.Error("test-coin not found in latest results")
 	}
-
-	// Cleanup
-	_, _ = pool.Exec(context.Background(), "DELETE FROM crypto_prices WHERE coin_id = 'test-coin'")
 }

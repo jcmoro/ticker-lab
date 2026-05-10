@@ -17,11 +17,81 @@ services:
         value: "https://api.frankfurter.dev"
       - key: DATABASE_URL
         sync: false
+      # Browser-facing URLs of the downstream Go services.
+      # Updated to point at Render's per-service subdomains in production.
+      - key: GO_CONVERTER_URL
+        value: "https://tickerlab-go.onrender.com"
+      - key: CRYPTO_GO_URL
+        value: "https://tickerlab-crypto.onrender.com"
+      - key: MACRO_GO_URL
+        value: "https://tickerlab-macro.onrender.com"
     healthCheckPath: /health
     buildFilter:
       paths:
-        - apps/**
+        - apps/api/**
         - packages/**
-        - docker/**
+        - docker/api/**
         - package.json
         - pnpm-lock.yaml
+
+  - type: web
+    name: tickerlab-go
+    runtime: docker
+    dockerfilePath: ./docker/converter-go/Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: DATABASE_URL
+        sync: false
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - apps/converter-go/**
+        - apps/internal/httpx/**
+        - go.work
+        - docker/converter-go/**
+
+  - type: web
+    name: tickerlab-crypto
+    runtime: docker
+    dockerfilePath: ./docker/crypto-go/Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: "8090"
+      - key: DATABASE_URL
+        sync: false
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - apps/crypto-go/**
+        - apps/internal/httpx/**
+        - go.work
+        - docker/crypto-go/**
+
+  - type: web
+    name: tickerlab-macro
+    runtime: docker
+    dockerfilePath: ./docker/macro-go/Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: "8110"
+      - key: DATABASE_URL
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - apps/macro-go/**
+        - apps/internal/httpx/**
+        - go.work
+        - docker/macro-go/**
