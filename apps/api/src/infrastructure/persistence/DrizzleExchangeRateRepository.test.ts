@@ -1,4 +1,5 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { DrizzleExchangeRateRepository } from './DrizzleExchangeRateRepository.js';
@@ -25,9 +26,13 @@ describeIfDb('DrizzleExchangeRateRepository (integration)', () => {
   let db: ReturnType<typeof drizzle<typeof schema>>;
   let repo: DrizzleExchangeRateRepository;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     client = postgres(dbUrl as string, { max: 2 });
     db = drizzle(client, { schema });
+    // Apply migrations so the test is self-contained: in CI the Postgres
+    // service starts empty, and locally we don't want to depend on the dev
+    // workflow having been run first.
+    await migrate(db, { migrationsFolder: './drizzle' });
     repo = new DrizzleExchangeRateRepository(db);
   });
 
