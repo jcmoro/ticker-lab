@@ -218,44 +218,14 @@ export function dashboardRoutes(deps: DashboardDeps) {
     const cnmvBaseUrl = process.env.CNMV_GO_URL ?? 'http://localhost:8130';
 
     server.get('/funds', async (request: FastifyRequest, reply: FastifyReply) => {
-      const q = request.query as {
-        tipo?: string;
-        gestora?: string;
-        q?: string;
-        page_size?: string;
-        page_token?: string;
-      };
-      const params = new URLSearchParams();
-      if (q.tipo) params.set('tipo', q.tipo);
-      if (q.gestora) params.set('gestora', q.gestora);
-      if (q.q) params.set('q', q.q);
-      params.set('page_size', q.page_size ?? '50');
-      if (q.page_token) params.set('page_token', q.page_token);
-
+      const q = request.query as FundsQuery;
+      const url = buildFundsListUrl(cnmvBaseUrl, q);
       try {
-        const res = await fetchService(`${cnmvBaseUrl}/api/v1/funds?${params.toString()}`);
-        const data = (await res.json()) as {
-          funds: FundSummary[];
-          next_page_token: string;
-          total_size?: number;
-        };
-        return reply.viewAsync('pages/funds', {
-          title: 'Funds',
-          funds: data.funds ?? [],
-          totalSize: data.total_size ?? 0,
-          nextPageToken: data.next_page_token ?? '',
-          filters: { tipo: q.tipo ?? '', gestora: q.gestora ?? '', q: q.q ?? '' },
-          cnmvBaseUrl,
-        });
+        const res = await fetchService(url);
+        const data = (await res.json()) as FundsListResponse;
+        return reply.viewAsync('pages/funds', fundsViewModel(q, cnmvBaseUrl, data));
       } catch {
-        return reply.viewAsync('pages/funds', {
-          title: 'Funds',
-          funds: [],
-          totalSize: 0,
-          nextPageToken: '',
-          filters: { tipo: q.tipo ?? '', gestora: q.gestora ?? '', q: q.q ?? '' },
-          cnmvBaseUrl,
-        });
+        return reply.viewAsync('pages/funds', fundsViewModel(q, cnmvBaseUrl, null));
       }
     });
 
@@ -296,6 +266,45 @@ export function dashboardRoutes(deps: DashboardDeps) {
         }
       },
     );
+  };
+}
+
+interface FundsQuery {
+  tipo?: string;
+  gestora?: string;
+  q?: string;
+  page_size?: string;
+  page_token?: string;
+}
+
+interface FundsListResponse {
+  funds?: FundSummary[];
+  next_page_token?: string;
+  total_size?: number;
+}
+
+function buildFundsListUrl(baseUrl: string, q: FundsQuery): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of [
+    ['tipo', q.tipo],
+    ['gestora', q.gestora],
+    ['q', q.q],
+    ['page_token', q.page_token],
+  ] as const) {
+    if (value) params.set(key, value);
+  }
+  params.set('page_size', q.page_size ?? '50');
+  return `${baseUrl}/api/v1/funds?${params.toString()}`;
+}
+
+function fundsViewModel(q: FundsQuery, cnmvBaseUrl: string, data: FundsListResponse | null) {
+  return {
+    title: 'Funds',
+    funds: data?.funds ?? [],
+    totalSize: data?.total_size ?? 0,
+    nextPageToken: data?.next_page_token ?? '',
+    filters: { tipo: q.tipo ?? '', gestora: q.gestora ?? '', q: q.q ?? '' },
+    cnmvBaseUrl,
   };
 }
 
