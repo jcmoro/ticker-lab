@@ -11,6 +11,7 @@ Ticker Lab project documentation.
 | [runbook.md](runbook.md)                                                      | Local dev, operations, troubleshooting                                   |
 | [changelog.md](changelog.md)                                                  | Reverse-chronological change log                                         |
 | [future-providers.md](future-providers.md)                                    | Roadmap of data providers to integrate                                   |
+| [plan-status.md](plan-status.md)                                              | Live tracker — Tier 1/2, Phase 12, tests, pending work                   |
 | [tech-debt-analysis.md](tech-debt-analysis.md)                                | Pre-Phase 12 tech debt audit + test expansion plan + Google AIP audit    |
 | [api-design-standards.md](api-design-standards.md)                            | Binding API design rules adopted from Google AIP (with deviations)       |
 | [comparison-providers-research.md](comparison-providers-research.md)          | API research: insurance, investment products, utilities                  |
