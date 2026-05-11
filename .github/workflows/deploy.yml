@@ -17,6 +17,12 @@ jobs:
     concurrency: deploy
     steps:
       - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
         run: |
-          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK secret is not set"
+            exit 1
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
           echo "Deploy triggered. Check https://dashboard.render.com for status."
