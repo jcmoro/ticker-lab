@@ -14,6 +14,7 @@ jobs:
     name: Deploy to Render
     needs: ci
     runs-on: ubuntu-latest
+    environment: prod
     concurrency: deploy
     steps:
       - name: Trigger Render deploy
