@@ -4,6 +4,29 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-17 — Tier 2 item 11: handler integration tests (crypto-go, macro-go)
+
+**Summary:** Closed the handler-coverage gap between `esios-go`/`cnmv-go` (already well-tested) and `crypto-go`/`macro-go` (shape-only assertions). 9 new tests covering ordering, days-filter semantics, default fallbacks, error paths and aggregated value computation.
+
+**`crypto-go` (4 new):**
+- `TestLatestEndpoint_OrderingByMarketCap` — seeds 3 prices at `2099-12-31` with mixed `market_cap_eur`, asserts handler returns them in DESC order. Filters response by `integ-ord-*` prefix to tolerate concurrent test rows at the same MAX date.
+- `TestHistoryEndpoint_FiltersByDays` — seeds rows at `CURRENT_DATE - {50, 25, 5}` for `integ-hist-coin`, exercises `?days=30|60|7` and asserts counts `{2, 3, 1}`.
+- `TestHistoryEndpoint_InvalidDaysDefaultsTo90` — `?days=abc|-5|0` all collapse to 90 per the handler's `parsed > 0` guard.
+- `TestHistoryEndpoint_UnknownCoinReturnsEmpty` — unknown `id` is 200 + `count: 0`, not 404.
+
+**`macro-go` (5 new):**
+- `TestIndicatorsEndpoint_CategoryFilter` — seeds 2 series across distinct categories, asserts `?category=` narrows correctly.
+- `TestIndicatorsEndpoint_LatestAndPrevComputed` — 2 observations seeded, validates `latest_value` / `latest_date` / `prev_value` from the LATERAL joins in `FindIndicators`.
+- `TestHistoryEndpoint_FiltersByDays` — `days=30|90|365` over observations at `CURRENT_DATE - {200, 60, 10}` returns `{1, 2, 3}`.
+- `TestHistoryEndpoint_MissingParamsReturn400` — direct handler call (bypassing the mux) with empty `source`/`id` returns ProblemDetails with `code=MISSING_PARAMS`.
+- `TestHistoryEndpoint_UnknownSeriesReturnsEmpty` — unknown series ⇒ 200 + `count: 0`.
+
+**Isolation:** tests cleanup via prefixed `coin_id` / `source` literals (`integ-*`, `test-cat`, `test-lat`, `test-hist`) so they're safe against concurrent runs and against real ingest seed data.
+
+**Counts:** crypto-go 7→11 tests, macro-go 9→14 tests. Total Go ~80.
+
+---
+
 ## 2026-05-17 — Tier 2 item 9: total_size on remaining list responses
 
 **Summary:** Two list endpoints that previously returned `total_size: null` now report the count for the requested filter on the first page. `cnmv-go` `/api/v1/funds/{isin}/nav-observations` and `esios-go` `/api/v1/electricity/indicators/{indicator_id}/geos/{geo_id}/observations` now compute `COUNT(*)` matching the (resource, start_date, end_date) filter when `page_token` is empty and embed it in `httpx.Page`. Subsequent pages omit `total_size` to avoid an extra COUNT roundtrip per request.

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -339,5 +340,203 @@ func TestBDEGapDetection(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("isBDEGap(%q) = %v, want %v", tc.raw, got, tc.want)
 		}
+	}
+}
+
+// TestIndicatorsEndpoint_CategoryFilter seeds two test series in distinct
+// categories and confirms the ?category= query param narrows the result.
+func TestIndicatorsEndpoint_CategoryFilter(t *testing.T) {
+	pool := getTestPool(t)
+	repo := NewRepository(pool)
+
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), "DELETE FROM macro_observations WHERE source = 'test-cat'")
+		_, _ = pool.Exec(context.Background(), "DELETE FROM macro_series WHERE source = 'test-cat'")
+	})
+
+	seed := []SeriesMeta{
+		{Source: "test-cat", SeriesID: "INFL_A", Name: "Infl A", Freq: "monthly", Unit: "%", Category: "inflation-test"},
+		{Source: "test-cat", SeriesID: "RATE_A", Name: "Rate A", Freq: "monthly", Unit: "%", Category: "rates-test"},
+	}
+	if err := repo.SeedSeries(context.Background(), seed); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/macro/indicators", handleIndicators(repo))
+
+	req := httptest.NewRequest("GET", "/api/v1/macro/indicators?category=inflation-test", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, body=%s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		Indicators []Indicator `json:"indicators"`
+	}
+	_ = json.NewDecoder(w.Body).Decode(&resp)
+
+	var got []string
+	for _, ind := range resp.Indicators {
+		if ind.Source == "test-cat" {
+			got = append(got, ind.SeriesID)
+		}
+	}
+	if len(got) != 1 || got[0] != "INFL_A" {
+		t.Errorf("filter returned %v; want exactly [INFL_A]", got)
+	}
+}
+
+// TestIndicatorsEndpoint_LatestAndPrevComputed verifies the LATERAL joins in
+// FindIndicators surface latest_value, latest_date, prev_value via the handler.
+func TestIndicatorsEndpoint_LatestAndPrevComputed(t *testing.T) {
+	pool := getTestPool(t)
+	repo := NewRepository(pool)
+
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), "DELETE FROM macro_observations WHERE source = 'test-lat'")
+		_, _ = pool.Exec(context.Background(), "DELETE FROM macro_series WHERE source = 'test-lat'")
+	})
+
+	if err := repo.SeedSeries(context.Background(), []SeriesMeta{
+		{Source: "test-lat", SeriesID: "TS_A", Name: "Latest Test", Freq: "monthly", Unit: "idx", Category: "latest-test"},
+	}); err != nil {
+		t.Fatalf("seed series: %v", err)
+	}
+	if err := repo.SaveObservations(context.Background(), []Observation{
+		{Source: "test-lat", SeriesID: "TS_A", Value: 100.0, Date: "2099-01-01"},
+		{Source: "test-lat", SeriesID: "TS_A", Value: 105.5, Date: "2099-02-01"},
+	}); err != nil {
+		t.Fatalf("save observations: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/macro/indicators", handleIndicators(repo))
+
+	req := httptest.NewRequest("GET", "/api/v1/macro/indicators?category=latest-test", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	var resp struct {
+		Indicators []Indicator `json:"indicators"`
+	}
+	_ = json.NewDecoder(w.Body).Decode(&resp)
+
+	if len(resp.Indicators) != 1 {
+		t.Fatalf("len = %d, want 1: %+v", len(resp.Indicators), resp.Indicators)
+	}
+	ind := resp.Indicators[0]
+	if ind.LatestValue != 105.5 {
+		t.Errorf("latest_value = %v, want 105.5", ind.LatestValue)
+	}
+	if ind.LatestDate != "2099-02-01" {
+		t.Errorf("latest_date = %q, want 2099-02-01", ind.LatestDate)
+	}
+	if ind.PrevValue != 100.0 {
+		t.Errorf("prev_value = %v, want 100.0", ind.PrevValue)
+	}
+}
+
+// TestHistoryEndpoint_FiltersByDays asserts the days param restricts points
+// to [CURRENT_DATE - days, CURRENT_DATE].
+func TestHistoryEndpoint_FiltersByDays(t *testing.T) {
+	pool := getTestPool(t)
+	repo := NewRepository(pool)
+
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), "DELETE FROM macro_observations WHERE source = 'test-hist'")
+		_, _ = pool.Exec(context.Background(), "DELETE FROM macro_series WHERE source = 'test-hist'")
+	})
+
+	if err := repo.SeedSeries(context.Background(), []SeriesMeta{
+		{Source: "test-hist", SeriesID: "HS_A", Name: "Hist Test", Freq: "monthly", Unit: "idx", Category: "hist-test"},
+	}); err != nil {
+		t.Fatalf("seed series: %v", err)
+	}
+	_, err := pool.Exec(context.Background(), `
+		INSERT INTO macro_observations (source, series_id, value, date)
+		VALUES
+			('test-hist', 'HS_A', 100, CURRENT_DATE - 200),
+			('test-hist', 'HS_A', 110, CURRENT_DATE - 60),
+			('test-hist', 'HS_A', 120, CURRENT_DATE - 10)
+	`)
+	if err != nil {
+		t.Fatalf("insert observations: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/macro/{source}/{id}/history", handleHistory(repo))
+
+	cases := []struct {
+		days    int
+		wantLen int
+	}{
+		{days: 30, wantLen: 1},
+		{days: 90, wantLen: 2},
+		{days: 365, wantLen: 3},
+	}
+	for _, c := range cases {
+		req := httptest.NewRequest("GET", "/api/v1/macro/test-hist/HS_A/history?days="+strconv.Itoa(c.days), nil)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("days=%d status = %d", c.days, w.Code)
+		}
+		var resp struct {
+			Count  int            `json:"count"`
+			Points []HistoryPoint `json:"points"`
+		}
+		_ = json.NewDecoder(w.Body).Decode(&resp)
+		if resp.Count != c.wantLen {
+			t.Errorf("days=%d count = %d, want %d", c.days, resp.Count, c.wantLen)
+		}
+	}
+}
+
+// TestHistoryEndpoint_MissingParamsReturn400 hits the defensive
+// "source/series ID required" branch by invoking the handler directly
+// (the mux pattern would normally guarantee both PathValues).
+func TestHistoryEndpoint_MissingParamsReturn400(t *testing.T) {
+	pool := getTestPool(t)
+	repo := NewRepository(pool)
+
+	req := httptest.NewRequest("GET", "/api/v1/macro//history", nil)
+	w := httptest.NewRecorder()
+	handleHistory(repo)(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", w.Code)
+	}
+	var pd httpx.ProblemDetails
+	_ = json.NewDecoder(w.Body).Decode(&pd)
+	if pd.Code != "MISSING_PARAMS" {
+		t.Errorf("code = %q, want MISSING_PARAMS", pd.Code)
+	}
+}
+
+// TestHistoryEndpoint_UnknownSeriesReturnsEmpty: unknown source/id is not
+// an error — handler returns 200 with count=0.
+func TestHistoryEndpoint_UnknownSeriesReturnsEmpty(t *testing.T) {
+	pool := getTestPool(t)
+	repo := NewRepository(pool)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/macro/{source}/{id}/history", handleHistory(repo))
+
+	req := httptest.NewRequest("GET", "/api/v1/macro/fred/DEFINITELY_NOT_A_SERIES/history?days=30", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var resp struct {
+		Source string         `json:"source"`
+		Count  int            `json:"count"`
+		Points []HistoryPoint `json:"points"`
+	}
+	_ = json.NewDecoder(w.Body).Decode(&resp)
+	if resp.Count != 0 {
+		t.Errorf("count = %d, want 0", resp.Count)
 	}
 }

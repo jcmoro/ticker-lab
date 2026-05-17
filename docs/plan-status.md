@@ -91,7 +91,7 @@ high-value finds — the rest is normal sprint iteration.
 | 8b  | API gateway pattern (resolves service-URL leak documented in §6 of audit) | 4–6 h |
 | 9   | ✓ Add `total_size` to remaining list responses (2026-05-17)          | done   |
 | 10  | Eta template rendering tests                                         | 2–3 h  |
-| 11  | Go handler integration tests (crypto-go, macro-go)                  | 4–6 h  |
+| 11  | ✓ Go handler integration tests (crypto-go, macro-go) (2026-05-17)    | done   |
 | 12  | ✓ Migration advisory lock (`pg_advisory_lock`) (2026-05-17)          | done   |
 | 13  | ✓ Domain exceptions — replaced 8 raw `throw new Error()` (2026-05-17) | done   |
 | 14  | ✓ Graceful shutdown + `slog` in Go services (2026-05-17)             | done   |
