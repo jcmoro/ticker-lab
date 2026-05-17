@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -210,5 +211,31 @@ func TestSaveAndFindLatest(t *testing.T) {
 	}
 	if !found {
 		t.Error("test-coin not found in latest results")
+	}
+}
+
+// TestMigrate_ConcurrentSafe runs Migrate from N goroutines simultaneously
+// against a shared pool. The advisory lock should serialize them so all
+// callers succeed without errors and the schema lands in its final state.
+func TestMigrate_ConcurrentSafe(t *testing.T) {
+	pool := getTestPool(t)
+
+	const n = 8
+	var wg sync.WaitGroup
+	errs := make(chan error, n)
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			errs <- NewRepository(pool).Migrate(context.Background())
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Errorf("concurrent Migrate failed: %v", err)
+		}
 	}
 }

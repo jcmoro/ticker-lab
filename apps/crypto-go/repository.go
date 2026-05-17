@@ -16,8 +16,25 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
+// migrationLockKey is a per-service advisory-lock key. Different services
+// use different keys so they don't block each other during concurrent boot.
+const migrationLockKey int64 = 12001
+
 func (r *Repository) Migrate(ctx context.Context) error {
-	_, err := r.pool.Exec(ctx, `
+	conn, err := r.pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire connection: %w", err)
+	}
+	defer conn.Release()
+
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", migrationLockKey); err != nil {
+		return fmt.Errorf("acquire advisory lock: %w", err)
+	}
+	defer func() {
+		_, _ = conn.Exec(context.Background(), "SELECT pg_advisory_unlock($1)", migrationLockKey)
+	}()
+
+	_, err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS crypto_prices (
 			id SERIAL PRIMARY KEY,
 			coin_id VARCHAR(50) NOT NULL,

@@ -17,9 +17,28 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-// Migrate is idempotent: safe to call on every startup.
+// migrationLockKey is a per-service advisory-lock key. Different services
+// use different keys so they don't block each other during concurrent boot.
+const migrationLockKey int64 = 12003
+
+// Migrate is idempotent: safe to call on every startup. An advisory lock
+// serializes concurrent migration attempts (e.g. multiple service instances
+// booting at once on Render).
 func (r *Repository) Migrate(ctx context.Context) error {
-	_, err := r.pool.Exec(ctx, `
+	conn, err := r.pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire connection: %w", err)
+	}
+	defer conn.Release()
+
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", migrationLockKey); err != nil {
+		return fmt.Errorf("acquire advisory lock: %w", err)
+	}
+	defer func() {
+		_, _ = conn.Exec(context.Background(), "SELECT pg_advisory_unlock($1)", migrationLockKey)
+	}()
+
+	_, err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS esios_series (
 			indicator_id   INTEGER NOT NULL,
 			geo_id         INTEGER NOT NULL,

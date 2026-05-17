@@ -92,7 +92,7 @@ high-value finds — the rest is normal sprint iteration.
 | 9   | Add `total_size` to remaining list responses                         | 1 h    |
 | 10  | Eta template rendering tests                                         | 2–3 h  |
 | 11  | Go handler integration tests (crypto-go, macro-go)                  | 4–6 h  |
-| 12  | Migration advisory lock (`pg_advisory_lock`)                         | 2 h    |
+| 12  | ✓ Migration advisory lock (`pg_advisory_lock`) (2026-05-17)          | done   |
 | 13  | ✓ Domain exceptions — replaced 8 raw `throw new Error()` (2026-05-17) | done   |
 | 14  | ✓ Graceful shutdown + `slog` in Go services (2026-05-17)             | done   |
 | C   | ✓ GitHub Actions cron for BdE, ESIOS, CNMV daily ingest (2026-05-17) | done   |

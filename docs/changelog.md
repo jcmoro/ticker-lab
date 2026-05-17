@@ -4,6 +4,24 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-17 — Tier 2 item 12: migration advisory lock
+
+**Summary:** Wrapped `Migrate(ctx)` in the 4 Go services (`crypto-go`, `macro-go`, `esios-go`, `cnmv-go`) with `pg_advisory_lock` so concurrent boots can't race on `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`. Each service uses a distinct lock key (12001–12004) so they don't block each other.
+
+**Implementation pattern:**
+- `r.pool.Acquire(ctx)` to pin a session.
+- `SELECT pg_advisory_lock($1)` with the per-service key.
+- Deferred `pg_advisory_unlock` runs before the connection is released (defers LIFO), so the next caller of that pooled connection doesn't inherit the lock.
+- The existing DDL executes on the locked connection.
+
+**Why session-scoped (not transaction-scoped):** the DDL contains multiple statements that we don't want to wrap in a transaction (Postgres serializes DDL automatically per statement). Session lock + connection acquire keeps the scope narrow without forcing a transaction.
+
+**Test added:** `TestMigrate_ConcurrentSafe` in `apps/crypto-go/main_test.go` — runs Migrate from 8 goroutines against a shared pool; all must return `nil`. Validates the lock pattern; the other 3 services use the identical pattern with only the key constant changed.
+
+**Quality gates:** vet + tests green in all 4 services (test suites: crypto-go 13, macro-go 6, esios-go 9, cnmv-go 10).
+
+---
+
 ## 2026-05-17 — Tier 2 item 14: graceful shutdown + slog in Go services
 
 **Summary:** New shared helper `httpx.Run(ctx, addr, handler, shutdownTimeout)` wires `http.Server` with `srv.Shutdown` and `slog` lifecycle messages. All 5 Go services (`converter-go`, `crypto-go`, `macro-go`, `esios-go`, `cnmv-go`) replaced their `log.Fatal(http.ListenAndServe(...))` boot with `signal.NotifyContext(SIGINT, SIGTERM)` + `httpx.Run`. Render sends SIGTERM during redeploys; in-flight requests now have 15 s to drain.
