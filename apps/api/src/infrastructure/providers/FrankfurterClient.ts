@@ -1,5 +1,6 @@
 import { createExchangeRate, type ExchangeRate } from '../../domain/exchange-rate/ExchangeRate.js';
 import type { ExchangeRateProvider } from '../../domain/exchange-rate/ExchangeRateProvider.js';
+import { FrankfurterApiError } from '../errors.js';
 
 interface FrankfurterResponse {
   amount: number;
@@ -34,7 +35,7 @@ export class FrankfurterClient implements ExchangeRateProvider {
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Frankfurter API error: ${response.status} ${response.statusText}`);
+      throw new FrankfurterApiError(response.status, response.statusText);
     }
 
     const data = (await response.json()) as FrankfurterTimeSeriesResponse;
@@ -60,7 +61,7 @@ export class FrankfurterClient implements ExchangeRateProvider {
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Frankfurter API error: ${response.status} ${response.statusText}`);
+      throw new FrankfurterApiError(response.status, response.statusText);
     }
 
     const data = (await response.json()) as FrankfurterResponse;

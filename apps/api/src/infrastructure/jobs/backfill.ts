@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { MissingEnvVarError } from '../errors.js';
 import { DrizzleExchangeRateRepository } from '../persistence/DrizzleExchangeRateRepository.js';
 import * as schema from '../persistence/schema.js';
 import { FrankfurterClient } from '../providers/FrankfurterClient.js';
@@ -16,7 +17,7 @@ function addDays(dateStr: string, days: number): string {
 async function main(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is required');
+    throw new MissingEnvVarError('DATABASE_URL');
   }
 
   const frankfurterUrl = process.env.FRANKFURTER_BASE_URL ?? 'https://api.frankfurter.dev';

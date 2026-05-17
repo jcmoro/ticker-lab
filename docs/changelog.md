@@ -4,6 +4,23 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-17 — Tier 2 item 13: domain exceptions
+
+**Summary:** Replaced 8 raw `throw new Error()` in `apps/api/src` with three named exception classes co-located in `apps/api/src/infrastructure/errors.ts`. Aligns with CLAUDE.md rule "Exceptions must be domain-specific (never throw raw Error)" and matches the existing precedent in `domain/exchange-rate/errors.ts` and `PaginationError`.
+
+**New classes** (`apps/api/src/infrastructure/errors.ts`):
+- `MissingEnvVarError(name)` — used in 5 boot sites (`main.ts`, `persistence/migrate.ts`, `persistence/db.ts`, `jobs/ingest.ts`, `jobs/backfill.ts`) for `DATABASE_URL` not set.
+- `FrankfurterApiError(status, statusText)` — used twice in `FrankfurterClient` for non-OK upstream responses.
+- `DownstreamFetchError(url, status)` — used in `dashboard.ts` `fetchService` helper that fans out SSR calls to crypto/macro/esios/cnmv services.
+
+**Messages preserved** to keep backward-compatibility with existing tests asserting on regex (`/503.*Service Unavailable/`, `/404/`, `/500/`).
+
+**No handler changes:** `errorHandler` keeps falling back to 500 for these — boot errors crash the process before Fastify, and downstream/provider errors as 500 is acceptable for now. Promoting to 502 Bad Gateway is a follow-up if desired.
+
+**Tests:** 81 Node tests pass (unchanged).
+
+---
+
 ## 2026-05-17 — CI: daily cron for BdE, ESIOS, CNMV ingestion
 
 **Summary:** Extended `.github/workflows/ingest.yml` to cover the three Phase 12 providers. BdE runs as a new step inside the existing `macro` job (no new secret needed); ESIOS and CNMV run as new dedicated jobs. ESIOS gracefully no-ops with a workflow warning if `ESIOS_API_KEY` is missing, so the daily run keeps green until the REE token arrives.

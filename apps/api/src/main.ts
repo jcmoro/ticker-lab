@@ -4,6 +4,7 @@ import { ConvertCurrency } from './application/exchange-rate/ConvertCurrency.js'
 import { GetLatestRates } from './application/exchange-rate/GetLatestRates.js';
 import { GetRateHistory } from './application/exchange-rate/GetRateHistory.js';
 import { GetRatesByDate } from './application/exchange-rate/GetRatesByDate.js';
+import { MissingEnvVarError } from './infrastructure/errors.js';
 import { buildServer } from './infrastructure/http/server.js';
 import { DrizzleExchangeRateRepository } from './infrastructure/persistence/DrizzleExchangeRateRepository.js';
 import * as schema from './infrastructure/persistence/schema.js';
@@ -11,7 +12,7 @@ import * as schema from './infrastructure/persistence/schema.js';
 const start = async (): Promise<void> => {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is required');
+    throw new MissingEnvVarError('DATABASE_URL');
   }
 
   // Infrastructure

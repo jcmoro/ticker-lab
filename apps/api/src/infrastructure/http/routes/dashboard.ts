@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ExchangeRate } from '../../../domain/exchange-rate/ExchangeRate.js';
 import type { HistoryPoint } from '../../../domain/exchange-rate/ExchangeRateRepository.js';
+import { DownstreamFetchError } from '../../errors.js';
 import { enrichRates, getAllCurrencies, getCurrencyMeta } from '../currency-meta.js';
 
 interface DashboardDeps {
@@ -12,7 +13,7 @@ interface DashboardDeps {
 
 async function fetchService(url: string): Promise<Response> {
   const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
-  if (!res.ok) throw new Error(`${url} returned ${res.status}`);
+  if (!res.ok) throw new DownstreamFetchError(url, res.status);
   return res;
 }
 

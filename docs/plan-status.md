@@ -93,7 +93,7 @@ high-value finds — the rest is normal sprint iteration.
 | 10  | Eta template rendering tests                                         | 2–3 h  |
 | 11  | Go handler integration tests (crypto-go, macro-go)                  | 4–6 h  |
 | 12  | Migration advisory lock (`pg_advisory_lock`)                         | 2 h    |
-| 13  | Domain exceptions — replace 8 raw `throw new Error()`               | 2 h    |
+| 13  | ✓ Domain exceptions — replaced 8 raw `throw new Error()` (2026-05-17) | done   |
 | 14  | Graceful shutdown + `slog` in Go services                            | 2–3 h  |
 | C   | ✓ GitHub Actions cron for BdE, ESIOS, CNMV daily ingest (2026-05-17) | done   |
 | —   | SOCREGISTRO/SOCTRIM parser for SICAVs (CNMV quarterly)               | 4–6 h  |

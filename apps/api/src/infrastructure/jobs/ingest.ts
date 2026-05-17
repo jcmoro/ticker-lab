@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { IngestDailyRates } from '../../application/exchange-rate/IngestDailyRates.js';
+import { MissingEnvVarError } from '../errors.js';
 import { DrizzleExchangeRateRepository } from '../persistence/DrizzleExchangeRateRepository.js';
 import * as schema from '../persistence/schema.js';
 import { FrankfurterClient } from '../providers/FrankfurterClient.js';
@@ -10,7 +11,7 @@ const BASE_CURRENCY = 'EUR';
 async function main(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is required');
+    throw new MissingEnvVarError('DATABASE_URL');
   }
 
   const frankfurterUrl = process.env.FRANKFURTER_BASE_URL ?? 'https://api.frankfurter.dev';
