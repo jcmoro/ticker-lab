@@ -2,25 +2,27 @@
 
 Financial data dashboard that ingests public economic data daily and displays it as a ticker-style dashboard. Polyglot architecture experiment with Node.js and Go microservices.
 
-**Current scope:** ECB exchange rates (30 currencies), crypto prices (top 20), macro economic indicators (14 series from FRED & ECB). Historical data, interactive charts, and currency converter.
+**Current scope:** ECB exchange rates (30 currencies), crypto prices (top 20), macro economic indicators (FRED + ECB + BdE), Spanish electricity (ESIOS, Tier 1 series), Spanish investment funds (CNMV monthly NAV). Historical data, interactive charts, and currency converter.
 
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Backend (Node) | Node.js 24 + Fastify 5 + TypeScript |
-| Backend (Go) | Go 1.25 + stdlib + pgx (converter + crypto + macro) |
+| Backend (Go) | Go 1.25 + stdlib + pgx (converter + crypto + macro + esios + cnmv) |
 | Frontend | Fastify SSR (Eta templates) + Chart.js |
 | Database | PostgreSQL 16 + Drizzle ORM |
 | Contract | OpenAPI 3.1 (source of truth) |
-| Quality | Biome + Vitest (35 tests) + go test (21 tests) = **56 tests** |
+| Quality | Biome + Vitest + go test (~150 tests across 6 modules) |
 | Infra | Docker (dev) + Render + Neon + GitHub Actions |
 
 **Live:**
 - Dashboard: https://tickerlab.onrender.com
 - Go converter: https://tickerlab-go.onrender.com
 - Go crypto: https://tickerlab-crypto.onrender.com
-- Go macro: https://tickerlab-macro.onrender.com
+- Go macro: https://macro-go.onrender.com
+- Go ESIOS: https://tickerlab-esios.onrender.com
+- Go CNMV: https://tickerlab-cnmv.onrender.com
 
 ## Quick Start
 
@@ -29,7 +31,7 @@ make setup        # Build containers, install dependencies
 make db-migrate   # Create database tables
 make job-ingest   # Fetch latest exchange rates from ECB
 make job-backfill # Backfill historical rates (2024-01-01 to today)
-make dev          # Start all services (Node :3000, Go converter :8080, Go crypto :8090, Go macro :8110)
+make dev          # Start all services (Node :3000 + 5 Go services + Postgres)
 ```
 
 ## API
@@ -53,6 +55,16 @@ curl http://localhost:8110/api/v1/macro/indicators
 curl "http://localhost:8110/api/v1/macro/indicators?category=inflation"
 curl "http://localhost:8110/api/v1/macro/fred/CPIAUCSL/history?days=365"
 curl "http://localhost:8110/api/v1/macro/ecb/ICP/history?days=365"
+curl "http://localhost:8110/api/v1/macro/bde/IRPH/history?days=365"
+
+# ─── ESIOS Spanish Electricity (Go) ─────────────────────────
+curl "http://localhost:8120/api/v1/electricity/indicators?page_size=20"
+curl "http://localhost:8120/api/v1/electricity/indicators/1001/geos/8741/observations?start_date=2026-04-01&end_date=2026-05-01"
+
+# ─── CNMV Spanish Funds (Go) ────────────────────────────────
+curl "http://localhost:8130/api/v1/funds?gestora=MARCH&page_size=20"
+curl "http://localhost:8130/api/v1/funds/ES0173534017"
+curl "http://localhost:8130/api/v1/funds/ES0173534017/nav-observations?start_date=2025-01-01&end_date=2026-05-01"
 
 # ─── System ──────────────────────────────────────────────────
 curl http://localhost:3000/health
@@ -69,7 +81,7 @@ make help            # Show all available targets
 
 # Development
 make setup           # Build containers, install dependencies
-make dev             # Start all services (Node + Go converter + Go crypto + Go macro + Postgres)
+make dev             # Start all services
 make down            # Stop containers
 make clean           # Remove containers, volumes, node_modules
 
@@ -78,32 +90,46 @@ make ci              # Full CI pipeline (Node + Go)
 make lint            # Biome linter (Node)
 make format          # Biome formatter (Node)
 make typecheck       # TypeScript checks
-make test            # Node tests (35)
+make test            # Node tests
 make go-vet          # go vet on all Go services
-make go-test         # go test on all Go services (21 tests)
+make go-test         # go test on all Go services
 make go-ci           # Go quality gates (vet + test)
 
 # Database
-make db-migrate      # Run Drizzle migrations (exchange_rates)
+make db-migrate      # Run Drizzle migrations
 make db-seed         # Seed development data
 
 # Data
-make job-ingest      # Fetch latest ECB rates
-make job-backfill    # Backfill historical exchange rates
-make job-crypto      # Fetch latest crypto prices from CoinGecko
+make job-ingest          # Fetch latest ECB rates
+make job-backfill        # Backfill historical exchange rates
+make job-crypto          # Fetch latest crypto prices from CoinGecko
 make job-crypto-backfill # Backfill historical crypto prices (365 days, ~3.5 min)
-make job-macro-ingest    # Ingest FRED + ECB macro indicators
+make job-macro-ingest    # Ingest FRED + ECB + BdE macro indicators
+make job-macro-ingest-bde # Ingest only BdE Spanish rates
 make job-macro-backfill  # Backfill all macro indicators history
+make job-esios           # Ingest ESIOS Spanish electricity (requires ESIOS_API_KEY)
+make job-esios-backfill  # Backfill ESIOS indicators (2020 → now, chunked monthly)
+make job-cnmv            # Ingest CNMV Spanish funds (current + previous month)
+make job-cnmv-backfill   # Backfill CNMV fund history (default fromYear=2020)
+
+# Load testing
+make load-test       # k6 load test (smoke + ramp-up) against local
+make load-test-smoke # k6 smoke test (5 VUs, 30s)
+make load-test-prod  # k6 load test against production (Render)
 
 # Production
-make deploy          # Trigger Render deploy
-make prod-db         # Connect to Neon Postgres
-make prod-ingest     # Run ECB ingestion against production
-make prod-backfill   # Backfill exchange rates against production
+make deploy               # Trigger Render deploy
+make prod-db              # Connect to Neon Postgres
+make prod-ingest          # ECB ingestion against production
+make prod-backfill        # Backfill exchange rates against production
 make prod-crypto          # Fetch crypto prices against production
 make prod-crypto-backfill # Backfill crypto history (365 days, ~3.5 min)
-make prod-macro-ingest    # Ingest macro indicators against production
+make prod-macro-ingest    # Ingest FRED + ECB + BdE against production
 make prod-macro-backfill  # Backfill macro history against production
+make prod-esios           # Ingest ESIOS against production (requires ESIOS_API_KEY)
+make prod-esios-backfill  # Backfill ESIOS history against production
+make prod-cnmv            # Ingest CNMV against production
+make prod-cnmv-backfill   # Backfill CNMV history against production
 ```
 
 ## Services
@@ -113,40 +139,31 @@ make prod-macro-backfill  # Backfill macro history against production
 | `api` | 3000 | Node.js | Frankfurter (ECB) |
 | `converter-go` | 8080 | Go | Shared DB |
 | `crypto-go` | 8090 | Go | CoinGecko |
-| `macro-go` | 8110 | Go | FRED + ECB |
+| `macro-go` | 8110 | Go | FRED + ECB + BdE |
+| `esios-go` | 8120 | Go | REE ESIOS |
+| `cnmv-go` | 8130 | Go | CNMV monthly files |
 | `db` | 5432 | Postgres | — |
 
 ## Project Structure
 
 ```
 apps/
-├── api/src/                  Node.js — exchange rates + dashboard + converter
+├── api/src/                  Node.js — exchange rates + SSR dashboard + converter
 │   ├── domain/               Entities, value objects, ports
 │   ├── application/          Use cases (Ingest, GetLatest, GetHistory, Convert...)
 │   ├── infrastructure/       Fastify, Drizzle, Frankfurter, jobs
-│   ├── views/                SSR templates (dashboard, rate detail, converter)
+│   ├── views/                SSR templates
 │   └── main.ts               Composition root
 ├── converter-go/             Go — currency converter microservice
-│   ├── main.go               HTTP server + pgx + cross-rate logic
-│   └── main_test.go          9 tests
-├── crypto-go/                Go — crypto prices microservice
-│   ├── main.go               HTTP server + routing + ingestion CLI
-│   ├── coingecko.go          CoinGecko API client
-│   ├── repository.go         Postgres repository (auto-migrate)
-│   ├── handlers.go           HTTP handlers
-│   ├── models.go             Types + top 20 coins config
-│   └── main_test.go          6 tests
-├── macro-go/                 Go — macro indicators microservice
-│   ├── main.go               HTTP server + CLI (ingest, ingest-ecb, backfill)
-│   ├── fred.go               FRED API client (API key auth)
-│   ├── ecb.go                ECB Data Portal client (CSV format)
-│   ├── repository.go         Postgres repository (auto-migrate)
-│   ├── handlers.go           HTTP handlers
-│   ├── models.go             Types + 14 series config (FRED + ECB)
-│   └── main_test.go          6 tests
+├── crypto-go/                Go — crypto prices microservice (CoinGecko)
+├── macro-go/                 Go — macro indicators microservice (FRED + ECB + BdE)
+├── esios-go/                 Go — Spanish electricity microservice (REE ESIOS)
+├── cnmv-go/                  Go — Spanish funds microservice (CNMV monthly NAV)
+└── internal/httpx/           Shared Go package (CORS, ProblemDetails, pagination)
 packages/shared/              Shared types (generated from OpenAPI)
-docker/                       Dockerfiles (api, converter-go, crypto-go, macro-go)
-docs/                         Architecture, API, runbook, ADRs, roadmap
+docker/                       Dockerfiles per service
+docs/                         Architecture, API, runbook, ADRs, integration specs, roadmap
+tests/load/                   k6 load test scenarios (smoke + ramp-up + prod)
 ```
 
 ## Pages
@@ -157,8 +174,12 @@ docs/                         Architecture, API, runbook, ADRs, roadmap
 | `/rates/:quote` | Node | Detail — Chart.js chart with 30d/90d/180d/365d selector |
 | `/crypto` | Node → Go | Top 20 crypto prices with 24h change |
 | `/crypto/:id` | Node → Go | Crypto detail — Chart.js chart with period selector |
-| `/macro` | Node → Go | Macro indicators grouped by category (FRED + ECB) |
+| `/macro` | Node → Go | Macro indicators grouped by category (FRED + ECB + BdE) |
 | `/macro/:source/:id` | Node → Go | Macro detail — Chart.js chart with 3M/6M/1Y/5Y/ALL selector |
+| `/electricity` | Node → Go | ESIOS indicators with category filter |
+| `/electricity/:indicator/:geo` | Node → Go | Electricity detail — hourly time series |
+| `/funds` | Node → Go | CNMV Spanish funds with filters (tipo, gestora, free-text) |
+| `/funds/:isin` | Node → Go | Fund detail — NAV chart with date range selector |
 | `/converter` | Node | Currency converter — Node/Go/Both toggle with response times |
 | `/api/docs` | Node | Interactive API documentation (ReDoc) |
 
@@ -166,18 +187,28 @@ docs/                         Architecture, API, runbook, ADRs, roadmap
 
 - [Docs index](docs/README.md)
 - [Architecture](docs/architecture.md)
-- [API](docs/api.md)
+- [API navigation](docs/api.md)
+- [API design standards](docs/api-design-standards.md)
+- [Plan status](docs/plan-status.md)
+- [Tech debt analysis](docs/tech-debt-analysis.md)
 - [Runbook](docs/runbook.md)
 - [Changelog](docs/changelog.md)
 - [Future Providers](docs/future-providers.md)
 - [Future Features](docs/future-features.md)
-- [Macro Indicators Integration](docs/macro-indicators-integration.md)
-- [RateHawk Integration](docs/ratehawk-integration.md)
-- [ADR-001: Tech Stack](docs/decisions/001-tech-stack.md)
-- [ADR-002: Frontend SSR](docs/decisions/002-frontend-ssr.md)
+- Integration specs:
+  - [Macro Indicators](docs/macro-indicators-integration.md)
+  - [BdE](docs/bde-integration.md)
+  - [ESIOS](docs/esios-integration.md)
+  - [CNMV](docs/cnmv-integration.md)
+  - [RateHawk](docs/ratehawk-integration.md)
+  - [Comparison providers research](docs/comparison-providers-research.md)
+- ADRs:
+  - [ADR-001: Tech Stack](docs/decisions/001-tech-stack.md)
+  - [ADR-002: Frontend SSR](docs/decisions/002-frontend-ssr.md)
+  - [ADR-003: Hosting Strategy](docs/decisions/003-hosting-strategy.md)
 
 ## Other directories
-- **`skills/`** -- Reusable agent skills developed (changelog, feature-spec).
+- **`skills/`** — Reusable agent skills developed (changelog, feature-spec).
 
 ## License
 
