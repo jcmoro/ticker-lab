@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -74,8 +77,12 @@ func main() {
 		port = "8110"
 	}
 
-	log.Printf("Macro Go listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, handler))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := httpx.Run(ctx, ":"+port, handler, 15*time.Second); err != nil {
+		slog.Error("server failed", "service", "macro-go", "err", err)
+		os.Exit(1)
+	}
 }
 
 func runIngestFRED(repo *Repository, client *FREDClient) {

@@ -4,6 +4,20 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-17 — Tier 2 item 14: graceful shutdown + slog in Go services
+
+**Summary:** New shared helper `httpx.Run(ctx, addr, handler, shutdownTimeout)` wires `http.Server` with `srv.Shutdown` and `slog` lifecycle messages. All 5 Go services (`converter-go`, `crypto-go`, `macro-go`, `esios-go`, `cnmv-go`) replaced their `log.Fatal(http.ListenAndServe(...))` boot with `signal.NotifyContext(SIGINT, SIGTERM)` + `httpx.Run`. Render sends SIGTERM during redeploys; in-flight requests now have 15 s to drain.
+
+**New file:** `apps/internal/httpx/server.go` — `Run` returns the listen error if the bind fails, or the `Shutdown` error if draining exceeded the timeout, or `nil` on clean shutdown. Uses `slog` (default text handler) for `server listening`, `shutdown signal received, draining`, `graceful shutdown failed`, `server stopped cleanly`.
+
+**Tests added:** `TestRun_ShutdownOnCtxCancel` (start, GET /ping, cancel ctx, verify clean return within 3 s) and `TestRun_ListenError` (port already bound, expect `*net.OpError`). Bound to ephemeral ports (`127.0.0.1:0`) to avoid flakes.
+
+**Scope kept tight:** ingestion CLI paths still use `log.Printf` (human-readable output for `make job-*` and `prod-*` targets). Migrating those to `slog` adds churn without HTTP-observability value.
+
+**Quality gates:** `go vet` + `go test` green in all 5 services and `httpx`. Docker prod builds for `esios-go` and `cnmv-go` verified.
+
+---
+
 ## 2026-05-17 — Tier 2 item 13: domain exceptions
 
 **Summary:** Replaced 8 raw `throw new Error()` in `apps/api/src` with three named exception classes co-located in `apps/api/src/infrastructure/errors.ts`. Aligns with CLAUDE.md rule "Exceptions must be domain-specific (never throw raw Error)" and matches the existing precedent in `domain/exchange-rate/errors.ts` and `PaginationError`.

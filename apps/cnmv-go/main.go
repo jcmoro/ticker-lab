@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -58,8 +61,12 @@ func main() {
 	if port == "" {
 		port = "8130"
 	}
-	log.Printf("CNMV Go listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, handler))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := httpx.Run(ctx, ":"+port, handler, 15*time.Second); err != nil {
+		slog.Error("server failed", "service", "cnmv-go", "err", err)
+		os.Exit(1)
+	}
 }
 
 // runIngest downloads the current month + previous month and upserts.

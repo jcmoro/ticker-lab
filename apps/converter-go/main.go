@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"math"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,8 +62,12 @@ func main() {
 
 	handler := httpx.CORSMiddleware(mux)
 
-	log.Printf("Converter Go listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, handler))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := httpx.Run(ctx, ":"+port, handler, 15*time.Second); err != nil {
+		slog.Error("server failed", "service", "converter-go", "err", err)
+		os.Exit(1)
+	}
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
