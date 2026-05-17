@@ -4,6 +4,24 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-17 — Tier 2 item 9: total_size on remaining list responses
+
+**Summary:** Two list endpoints that previously returned `total_size: null` now report the count for the requested filter on the first page. `cnmv-go` `/api/v1/funds/{isin}/nav-observations` and `esios-go` `/api/v1/electricity/indicators/{indicator_id}/geos/{geo_id}/observations` now compute `COUNT(*)` matching the (resource, start_date, end_date) filter when `page_token` is empty and embed it in `httpx.Page`. Subsequent pages omit `total_size` to avoid an extra COUNT roundtrip per request.
+
+**Why "first page only":** AIP-158 leaves `total_size` optional, and these endpoints use a date-cursor that overrides `start_date` on subsequent pages. Recomputing the absolute total on every page would either require encoding the original filter range in the cursor (extra surface) or returning the misleading "remaining count after cursor" (semantic drift). Page-1-only delivers AIP-correct semantics where it matters (the user typically reads `total_size` once) without the cost on hot paths.
+
+**New repository methods:**
+- `cnmv-go`: `CountNAVObservations(ctx, isin, start, end) (int64, error)`
+- `esios-go`: `CountObservations(ctx, indicatorID, geoID, start, end) (int64, error)`
+
+**Tests added:**
+- `TestObservationsEndpoint_TotalSizeOnFirstPageOnly` (esios-go) — seeds 5 observations, paginates at size=2, asserts `total_size=5` on page 1 and `total_size` absent on page 2.
+- `TestNavObservationsEndpoint_TotalSizeOnFirstPageOnly` (cnmv-go) — analogous for NAV observations.
+
+**Quality gates:** full test suites green in both services.
+
+---
+
 ## 2026-05-17 — Tier 2 item 12: migration advisory lock
 
 **Summary:** Wrapped `Migrate(ctx)` in the 4 Go services (`crypto-go`, `macro-go`, `esios-go`, `cnmv-go`) with `pg_advisory_lock` so concurrent boots can't race on `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`. Each service uses a distinct lock key (12001–12004) so they don't block each other.

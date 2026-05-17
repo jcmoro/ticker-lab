@@ -117,6 +117,16 @@ func handleNavObservations(repo *Repository) http.HandlerFunc {
 			start = time.Now().UTC().AddDate(-1, 0, 0).Format("2006-01-02")
 		}
 
+		// On the first page (no cursor), report the full count for the
+		// requested (isin, start, end) range. Subsequent pages omit
+		// total_size to avoid an extra COUNT per page.
+		var totalSize *int64
+		if page.Token == "" {
+			if n, cerr := repo.CountNAVObservations(r.Context(), isin, start, end); cerr == nil {
+				totalSize = &n
+			}
+		}
+
 		// page_token, when present, encodes the last seen date — caller
 		// advances by overriding start_date with the next day.
 		if page.Token != "" {
@@ -155,7 +165,7 @@ func handleNavObservations(repo *Repository) http.HandlerFunc {
 		}{
 			ISIN:   isin,
 			Points: points,
-			Page:   httpx.NewPage(nextToken, nil),
+			Page:   httpx.NewPage(nextToken, totalSize),
 		})
 	}
 }

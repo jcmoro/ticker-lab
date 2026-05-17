@@ -347,3 +347,80 @@ func TestFundsEndpoint_PaginationCursor(t *testing.T) {
 		t.Errorf("page2 next_page_token should be empty (terminal), got %q", page2.NextPageToken)
 	}
 }
+
+func TestNavObservationsEndpoint_TotalSizeOnFirstPageOnly(t *testing.T) {
+	pool := getTestPool(t)
+	repo := NewRepository(pool)
+
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), "DELETE FROM cnmv_nav_observations WHERE isin = 'TP9999999990'")
+		_, _ = pool.Exec(context.Background(), "DELETE FROM cnmv_funds WHERE isin = 'TP9999999990'")
+	})
+
+	// Seed parent fund + 5 NAV days.
+	_ = repo.UpsertFunds(context.Background(), []Fund{
+		{ISIN: "TP9999999990", Tipo: "FI", NumeroRegistro: 99, Denominacion: "NAV PAGINATION", GestoraNombre: "NAV TEST"},
+	}, "209912")
+	_, err := pool.Exec(context.Background(), `
+		INSERT INTO cnmv_nav_observations (isin, date, nav, participes, patrimonio)
+		VALUES
+			('TP9999999990', '2099-01-01', 10.0, 1, 100),
+			('TP9999999990', '2099-01-02', 11.0, 1, 110),
+			('TP9999999990', '2099-01-03', 12.0, 1, 120),
+			('TP9999999990', '2099-01-04', 13.0, 1, 130),
+			('TP9999999990', '2099-01-05', 14.0, 1, 140)
+	`)
+	if err != nil {
+		t.Fatalf("seed nav observations: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/funds/{isin}/nav-observations", handleNavObservations(repo))
+
+	// Page 1: page_size=2, expect total_size=5 and a cursor.
+	req := httptest.NewRequest("GET",
+		"/api/v1/funds/TP9999999990/nav-observations?"+
+			"page_size=2&start_date=2099-01-01&end_date=2099-01-10", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("page1 status = %d, body=%s", w.Code, w.Body.String())
+	}
+	var page1 struct {
+		Points        []NavPoint `json:"points"`
+		NextPageToken string     `json:"next_page_token"`
+		TotalSize     *int64     `json:"total_size,omitempty"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&page1); err != nil {
+		t.Fatalf("page1 decode: %v", err)
+	}
+	if len(page1.Points) != 2 {
+		t.Errorf("page1 points = %d, want 2", len(page1.Points))
+	}
+	if page1.NextPageToken == "" {
+		t.Errorf("page1 missing next_page_token")
+	}
+	if page1.TotalSize == nil || *page1.TotalSize != 5 {
+		t.Errorf("page1 total_size = %v, want 5", page1.TotalSize)
+	}
+
+	// Page 2: cursor present, expect total_size omitted.
+	req = httptest.NewRequest("GET",
+		"/api/v1/funds/TP9999999990/nav-observations?"+
+			"page_size=2&end_date=2099-01-10&page_token="+page1.NextPageToken, nil)
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("page2 status = %d", w.Code)
+	}
+	var page2 struct {
+		Points    []NavPoint `json:"points"`
+		TotalSize *int64     `json:"total_size,omitempty"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&page2); err != nil {
+		t.Fatalf("page2 decode: %v", err)
+	}
+	if page2.TotalSize != nil {
+		t.Errorf("page2 total_size = %v, want nil (omitted)", *page2.TotalSize)
+	}
+}

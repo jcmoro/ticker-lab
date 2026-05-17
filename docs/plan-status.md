@@ -89,7 +89,7 @@ high-value finds — the rest is normal sprint iteration.
 | --- | -------------------------------------------------------------------- | -----: |
 | 8   | Plan `/api/v2/` migration for verb-shaped v1 endpoints              | 2 h    |
 | 8b  | API gateway pattern (resolves service-URL leak documented in §6 of audit) | 4–6 h |
-| 9   | Add `total_size` to remaining list responses                         | 1 h    |
+| 9   | ✓ Add `total_size` to remaining list responses (2026-05-17)          | done   |
 | 10  | Eta template rendering tests                                         | 2–3 h  |
 | 11  | Go handler integration tests (crypto-go, macro-go)                  | 4–6 h  |
 | 12  | ✓ Migration advisory lock (`pg_advisory_lock`) (2026-05-17)          | done   |

@@ -272,6 +272,83 @@ func TestIndicatorsEndpointPagination(t *testing.T) {
 	}
 }
 
+func TestObservationsEndpoint_TotalSizeOnFirstPageOnly(t *testing.T) {
+	pool := getTestPool(t)
+	repo := NewRepository(pool)
+
+	// Seed 5 observations 1 hour apart in the future to avoid colliding
+	// with real backfills. indicator_id < 0 marks the test rows.
+	base := time.Date(2099, 6, 1, 0, 0, 0, 0, time.UTC)
+	obs := make([]Observation, 0, 5)
+	for i := 0; i < 5; i++ {
+		obs = append(obs, Observation{
+			IndicatorID: -3001,
+			GeoID:       8741,
+			Value:       float64(i),
+			DatetimeUTC: base.Add(time.Duration(i) * time.Hour),
+		})
+	}
+	if err := repo.SaveObservations(context.Background(), obs); err != nil {
+		t.Fatalf("seed observations: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), "DELETE FROM esios_observations WHERE indicator_id = -3001")
+	})
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/electricity/indicators/{indicator_id}/geos/{geo_id}/observations", handleObservations(repo))
+
+	rangeStart := base.Add(-1 * time.Hour).Format(time.RFC3339)
+	rangeEnd := base.Add(10 * time.Hour).Format(time.RFC3339)
+
+	// Page 1: page_size=2, expect total_size=5 and a cursor.
+	req := httptest.NewRequest("GET",
+		"/api/v1/electricity/indicators/-3001/geos/8741/observations?"+
+			"page_size=2&start_date="+rangeStart+"&end_date="+rangeEnd, nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("page1 status = %d, body=%s", w.Code, w.Body.String())
+	}
+	var page1 struct {
+		Points        []HistoryPoint `json:"points"`
+		NextPageToken string         `json:"next_page_token"`
+		TotalSize     *int64         `json:"total_size,omitempty"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&page1); err != nil {
+		t.Fatalf("page1 decode: %v", err)
+	}
+	if len(page1.Points) != 2 {
+		t.Errorf("page1 points = %d, want 2", len(page1.Points))
+	}
+	if page1.NextPageToken == "" {
+		t.Errorf("page1 missing next_page_token")
+	}
+	if page1.TotalSize == nil || *page1.TotalSize != 5 {
+		t.Errorf("page1 total_size = %v, want 5", page1.TotalSize)
+	}
+
+	// Page 2: cursor present, expect total_size omitted.
+	req = httptest.NewRequest("GET",
+		"/api/v1/electricity/indicators/-3001/geos/8741/observations?"+
+			"page_size=2&end_date="+rangeEnd+"&page_token="+page1.NextPageToken, nil)
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("page2 status = %d", w.Code)
+	}
+	var page2 struct {
+		Points    []HistoryPoint `json:"points"`
+		TotalSize *int64         `json:"total_size,omitempty"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&page2); err != nil {
+		t.Fatalf("page2 decode: %v", err)
+	}
+	if page2.TotalSize != nil {
+		t.Errorf("page2 total_size = %v, want nil (omitted)", *page2.TotalSize)
+	}
+}
+
 func TestIndicatorsEndpoint_NegativePageSizeReturns400(t *testing.T) {
 	pool := getTestPool(t)
 	repo := NewRepository(pool)

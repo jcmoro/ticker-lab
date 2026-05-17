@@ -111,6 +111,16 @@ func handleObservations(repo *Repository) http.HandlerFunc {
 			end = t
 		}
 
+		// On the first page (no cursor), report the full count for the
+		// requested (indicator, geo, start, end) range. Subsequent pages
+		// omit total_size to avoid an extra COUNT per page.
+		var totalSize *int64
+		if page.Token == "" {
+			if n, cerr := repo.CountObservations(r.Context(), indicatorID, geoID, start, end); cerr == nil {
+				totalSize = &n
+			}
+		}
+
 		// page_token, when present, supersedes start_date — it points
 		// just past the previous page's last observation.
 		if page.Token != "" {
@@ -154,7 +164,7 @@ func handleObservations(repo *Repository) http.HandlerFunc {
 			IndicatorID: indicatorID,
 			GeoID:       geoID,
 			Points:      points,
-			Page:        httpx.NewPage(nextToken, nil),
+			Page:        httpx.NewPage(nextToken, totalSize),
 		})
 	}
 }

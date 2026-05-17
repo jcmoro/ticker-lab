@@ -221,3 +221,21 @@ func (r *Repository) FindObservations(
 	}
 	return out, rows.Err()
 }
+
+// CountObservations returns the total number of observations matching the
+// (indicator_id, geo_id, [start, end]) filter, ignoring any pagination
+// cursor. Used to populate total_size on the first page response.
+func (r *Repository) CountObservations(
+	ctx context.Context,
+	indicatorID, geoID int,
+	start, end time.Time,
+) (int64, error) {
+	var total int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM esios_observations
+		WHERE indicator_id = $1 AND geo_id = $2
+		  AND datetime_utc BETWEEN $3 AND $4
+	`, indicatorID, geoID, start, end).Scan(&total)
+	return total, err
+}

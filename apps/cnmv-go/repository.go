@@ -321,6 +321,21 @@ func (r *Repository) FindNAVObservations(ctx context.Context, isin, start, end s
 	return out, rows.Err()
 }
 
+// CountNAVObservations returns the total number of NAV observations
+// matching the (isin, [start, end]) filter, ignoring any pagination
+// cursor. Used to populate total_size on the first page response.
+func (r *Repository) CountNAVObservations(ctx context.Context, isin, start, end string) (int64, error) {
+	var total int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM cnmv_nav_observations
+		WHERE isin = $1
+		  AND (NULLIF($2, '') IS NULL OR date >= $2::date)
+		  AND (NULLIF($3, '') IS NULL OR date <= $3::date)
+	`, isin, start, end).Scan(&total)
+	return total, err
+}
+
 func nullIfEmpty(s string) any {
 	if s == "" {
 		return nil
