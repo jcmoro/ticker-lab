@@ -1,6 +1,6 @@
 # Plan Status
 
-> **Last updated:** 2026-05-11
+> **Last updated:** 2026-05-17
 >
 > Live tracker for the post-Phase-11 work. Per-PR completion, test counts,
 > and what's still pending. Pair with [`tech-debt-analysis.md`](./tech-debt-analysis.md)
@@ -95,7 +95,7 @@ high-value finds — the rest is normal sprint iteration.
 | 12  | Migration advisory lock (`pg_advisory_lock`)                         | 2 h    |
 | 13  | Domain exceptions — replace 8 raw `throw new Error()`               | 2 h    |
 | 14  | Graceful shutdown + `slog` in Go services                            | 2–3 h  |
-| C   | GitHub Actions cron for BdE, ESIOS, CNMV daily ingest               | 1 h    |
+| C   | ✓ GitHub Actions cron for BdE, ESIOS, CNMV daily ingest (2026-05-17) | done   |
 | —   | SOCREGISTRO/SOCTRIM parser for SICAVs (CNMV quarterly)               | 4–6 h  |
 
 ### Hosting migration ([ADR-003](./decisions/003-hosting-strategy.md), separate cycle)
@@ -118,9 +118,10 @@ high-value finds — the rest is normal sprint iteration.
 
 ## Recommended next action
 
-**Tier 2 item C (GitHub Actions cron) — ~1 hour.** Pre-wires daily cron for
-BdE, ESIOS, CNMV. When the ESIOS token arrives and the secret is configured
-in GitHub, ingestion runs without further intervention.
+**Tier 2 item C done (2026-05-17).** `ingest.yml` now covers BdE (inside the
+`macro` job), ESIOS (skips if `ESIOS_API_KEY` unset) and CNMV. When the REE
+token arrives, adding the secret is the only action required.
 
-Alternatives: `README.md` update (10 min), Tier 2 item 8b (API gateway,
-4–6 h, resolves the converter-URL leak class of bug for good).
+Next candidates: `README.md` update (10 min), Tier 2 item 8b (API gateway,
+4–6 h, resolves the converter-URL leak class of bug for good), or item 13
+(domain exceptions, 2 h).

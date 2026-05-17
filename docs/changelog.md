@@ -4,6 +4,22 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-17 — CI: daily cron for BdE, ESIOS, CNMV ingestion
+
+**Summary:** Extended `.github/workflows/ingest.yml` to cover the three Phase 12 providers. BdE runs as a new step inside the existing `macro` job (no new secret needed); ESIOS and CNMV run as new dedicated jobs. ESIOS gracefully no-ops with a workflow warning if `ESIOS_API_KEY` is missing, so the daily run keeps green until the REE token arrives.
+
+**Workflow changes:**
+- `macro` job — new step `Ingest BdE` (`apps/macro-go && go run . ingest-bde`)
+- New job `esios` — runs `apps/esios-go && go run . ingest`; reads `ESIOS_API_KEY` secret; skips with `::warning::` if unset
+- New job `cnmv` — runs `apps/cnmv-go && go run . ingest`; idempotent monthly upsert (current + previous month), kept on daily cron for consistency
+
+**Secrets required (environment `prod`):** `DATABASE_URL` (all), `FRED_API_KEY` (macro), `ESIOS_API_KEY` (esios, optional).
+
+**API surface:** no change.
+**Schema:** no change.
+
+---
+
 ## 2026-05-11 — Phase 12 (CNMV): Spanish investment funds microservice
 
 **Summary:** New bounded context — Spanish investment funds from CNMV's monthly public-information files. Go microservice (`cnmv-go`, port 8130) scrapes the HTML listing page for tokenized ZIP URLs, downloads the archive, streams the XML, and exposes AIP-aligned REST endpoints with cursor pagination.
