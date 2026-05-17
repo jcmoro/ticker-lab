@@ -1,4 +1,4 @@
-.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-crypto job-crypto-backfill job-macro-ingest job-macro-ingest-bde job-macro-backfill job-esios job-esios-backfill job-cnmv job-cnmv-backfill seed-dev load-test load-test-smoke docker-build deploy fly-setup fly-logs fly-status fly-console fly-db fly-ingest fly-rollback
+.PHONY: help setup dev down clean build lint format typecheck test test-unit test-functional ci go-vet go-test go-ci db-migrate db-seed openapi-generate job-ingest job-backfill job-crypto job-crypto-backfill job-macro-ingest job-macro-ingest-bde job-macro-backfill job-esios job-esios-backfill job-cnmv job-cnmv-backfill seed-dev load-test load-test-smoke load-test-prod docker-build deploy prod-db prod-ingest prod-backfill prod-crypto prod-crypto-backfill prod-macro-ingest prod-macro-backfill prod-esios prod-esios-backfill prod-cnmv prod-cnmv-backfill
 
 .DEFAULT_GOAL := help
 
@@ -45,6 +45,7 @@ help: ## Show available targets
 	@echo "  \033[1mLoad Testing\033[0m"
 	@echo "  \033[36mload-test\033[0m          Run k6 load test (full: smoke + ramp-up)"
 	@echo "  \033[36mload-test-smoke\033[0m    Quick smoke test (5 VUs, 30s)"
+	@echo "  \033[36mload-test-prod\033[0m     Run k6 load test against production (Render)"
 	@echo ""
 	@echo "  \033[1mBuild & Deploy\033[0m"
 	@echo "  \033[36mbuild\033[0m              Build for production"
@@ -57,8 +58,12 @@ help: ## Show available targets
 	@echo "  \033[36mprod-backfill\033[0m      Backfill historical rates against production DB"
 	@echo "  \033[36mprod-crypto\033[0m        Fetch crypto prices against production DB"
 	@echo "  \033[36mprod-crypto-backfill\033[0m Backfill crypto history against production DB"
-	@echo "  \033[36mprod-macro-ingest\033[0m  Ingest macro indicators against production DB"
+	@echo "  \033[36mprod-macro-ingest\033[0m  Ingest macro indicators (FRED + ECB + BdE) against production DB"
 	@echo "  \033[36mprod-macro-backfill\033[0m Backfill macro history against production DB"
+	@echo "  \033[36mprod-esios\033[0m         Ingest ESIOS against production DB (requires ESIOS_API_KEY)"
+	@echo "  \033[36mprod-esios-backfill\033[0m Backfill ESIOS history against production DB"
+	@echo "  \033[36mprod-cnmv\033[0m          Ingest CNMV against production DB"
+	@echo "  \033[36mprod-cnmv-backfill\033[0m Backfill CNMV history against production DB"
 	@echo ""
 
 # ─── Development ─────────────────────────────────────────────
@@ -93,11 +98,15 @@ go-vet:
 	docker compose run --rm converter-go go vet ./...
 	docker compose run --rm crypto-go go vet ./...
 	docker compose run --rm macro-go go vet ./...
+	docker compose run --rm esios-go go vet ./...
+	docker compose run --rm cnmv-go go vet ./...
 
 go-test:
 	docker compose run --rm converter-go go test ./...
 	docker compose run --rm crypto-go go test ./...
 	docker compose run --rm macro-go go test ./...
+	docker compose run --rm esios-go go test ./...
+	docker compose run --rm cnmv-go go test ./...
 
 go-ci: go-vet go-test
 
@@ -234,6 +243,19 @@ prod-crypto-backfill: ## Backfill crypto history against production DB (365 days
 prod-macro-ingest: ## Ingest macro indicators against production DB
 	cd apps/macro-go && DATABASE_URL="$(DATABASE_URL)" FRED_API_KEY="$(FRED_API_KEY)" /usr/local/go/bin/go run . ingest
 	cd apps/macro-go && DATABASE_URL="$(DATABASE_URL)" /usr/local/go/bin/go run . ingest-ecb
+	cd apps/macro-go && DATABASE_URL="$(DATABASE_URL)" /usr/local/go/bin/go run . ingest-bde
 
 prod-macro-backfill: ## Backfill macro history against production DB
 	cd apps/macro-go && DATABASE_URL="$(DATABASE_URL)" FRED_API_KEY="$(FRED_API_KEY)" /usr/local/go/bin/go run . backfill
+
+prod-esios: ## Ingest ESIOS Spanish electricity against production DB (requires ESIOS_API_KEY)
+	cd apps/esios-go && DATABASE_URL="$(DATABASE_URL)" ESIOS_API_KEY="$(ESIOS_API_KEY)" /usr/local/go/bin/go run . ingest
+
+prod-esios-backfill: ## Backfill ESIOS indicators against production DB (2020 → now)
+	cd apps/esios-go && DATABASE_URL="$(DATABASE_URL)" ESIOS_API_KEY="$(ESIOS_API_KEY)" /usr/local/go/bin/go run . backfill
+
+prod-cnmv: ## Ingest CNMV Spanish funds against production DB (current + previous month)
+	cd apps/cnmv-go && DATABASE_URL="$(DATABASE_URL)" /usr/local/go/bin/go run . ingest
+
+prod-cnmv-backfill: ## Backfill CNMV fund history against production DB (default fromYear=2020)
+	cd apps/cnmv-go && DATABASE_URL="$(DATABASE_URL)" /usr/local/go/bin/go run . backfill 2020
