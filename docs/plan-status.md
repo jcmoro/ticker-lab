@@ -80,7 +80,6 @@ high-value finds — the rest is normal sprint iteration.
 | Item                                                  | Effort  | Blocking? |
 | ----------------------------------------------------- | ------- | --------- |
 | Wait for ESIOS token (email REE)                     | 1–3 d   | only for ESIOS smoke |
-| Update `README.md` (test count stale, missing doc links) | ~10 min | no       |
 | CNMV production backfill (Neon, ~5M rows / ~30 min)   | 30 min  | no        |
 
 ### Tier 2 polish (post-Phase 12, ~15–19 h)
