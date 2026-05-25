@@ -87,6 +87,11 @@
           <%= new Date(latest.datetime_utc).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) %>
           &middot; <%= it.history.length %> data points
         </p>
+        <% if (it.indicator.category === 'pricing' && latest.value < 0) { %>
+          <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #92400e;">
+            <strong>Precio negativo:</strong> el valor es correcto. En el mercado mayorista MIBEL los precios pueden ser negativos durante horas de fuerte generación renovable (solar al mediodía) y baja demanda — los productores pagan por seguir vertiendo energía a la red. Habitual desde 2024.
+          </div>
+        <% } %>
       <% } else { %>
         <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem;">
           No observations yet. Run <code style="background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 3px;">make job-esios</code> once you have an <code style="background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 3px;">ESIOS_API_KEY</code>.
