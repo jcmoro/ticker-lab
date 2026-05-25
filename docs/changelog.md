@@ -4,6 +4,26 @@ Reverse-chronological log of significant changes to Ticker Lab.
 
 ---
 
+## 2026-05-25 — ESIOS Tier 1 metadata corrected against live REE catalog
+
+**Summary:** First end-to-end smoke test against the live ESIOS API (token received from REE) revealed two of the five Tier 1 indicators were mislabelled in `apps/esios-go/models.go`. Names came from secondary references and did not match the REE catalog. Fixed in place; data shape is unchanged but the `short_name`, `category`, and (for one series) `geo_id` returned by `/api/v1/electricity/indicators` differ for these IDs.
+
+**Corrections (verified live 2026-05-25):**
+- `1293` was labelled "Generación programada PBF total" / `generation` → actually **"Demanda real"** / `demand` / MW. The data we'd been seeding into this row is genuine demand data; only the metadata was misleading.
+- `600` was labelled "Demanda real" / `demand` / `geo_id=8741` → actually **"Precio mercado SPOT diario"** / `pricing` / EUR/MWh / **`geo_id=3`** (country-level España, not electric system 8741). With the wrong `geo_id`, every smoke ingest returned 0 observations for this series.
+
+**Design note added to docs:** ESIOS `geo_id` is per-indicator. Demand/generation indicators use the electric-system taxonomy (8741 Península, 8742-8745 islands); wholesale market prices use the country taxonomy (1 Portugal, 2 Francia, 3 España). New indicators must be probed without `geo_ids[]` first to discover their taxonomy.
+
+**Affected endpoints:**
+- `GET /api/v1/electricity/indicators` — the rows for `indicator_id=600` and `indicator_id=1293` change `short_name`, `category` (and for 600, `geo_id` 8741→3, `unit` MW→EUR/MWh).
+- `GET /api/v1/electricity/indicators/{indicator_id}/geos/{geo_id}/observations` — the path `/indicators/600/geos/8741/...` no longer resolves to any series. Callers must use `/indicators/600/geos/3/...`.
+
+**Migration:** the stale `(indicator_id=600, geo_id=8741)` row in `esios_series` must be deleted (no observations referenced it; safe to drop). Re-running `make job-esios` recreates the catalog from the new `tier1Series` slice.
+
+**Quality gates:** `make go-ci` green across all 5 services. Existing esios-go tests use synthetic `indicator_id < 0` series so the rename had no test impact.
+
+---
+
 ## 2026-05-17 — Tier 2 item 11: handler integration tests (crypto-go, macro-go)
 
 **Summary:** Closed the handler-coverage gap between `esios-go`/`cnmv-go` (already well-tested) and `crypto-go`/`macro-go` (shape-only assertions). 9 new tests covering ordering, days-filter semantics, default fallbacks, error paths and aggregated value computation.

@@ -171,13 +171,15 @@ Response (indicador 1001, truncada):
 
 ### Tier 1 — Esenciales (MVP)
 
-| ID | Nombre | Categoría | Frecuencia | Unidad | Geo |
-|-----|--------|-----------|------------|--------|-----|
-| `1001` | Término de facturación PVPC 2.0TD | `pricing` | Horaria | €/MWh | 8741 (España) |
-| `600` | Demanda real | `demand` | Horaria | MW | 8741 (Península) |
-| `10211` | Precio medio horario final OMIE | `pricing` | Horaria | €/MWh | 8741 |
-| `1293` | Generación programada PBF — Total | `generation` | Horaria | MW | 8741 |
-| `10355` | Factor de emisiones de CO2 | `emissions` | Horaria | tCO2/MWh | 8741 |
+Verificado contra el catálogo ESIOS en vivo el 2026-05-25. **Los `geo_id` son por indicador**, no intercambiables: los indicadores de demanda/generación usan la taxonomía de **sistema eléctrico** (8741=Península, 8742-8745=islas), mientras que los **precios de mercado** (mercado SPOT diario) usan la taxonomía de **país** (1=Portugal, 2=Francia, 3=España).
+
+| ID | Nombre oficial REE | Categoría | Frecuencia | Unidad | Geo | Notas |
+|-----|--------|-----------|------------|--------|-----|-------|
+| `1001` | Término de facturación de energía activa del PVPC 2.0TD | `pricing` | Horaria | €/MWh | 8741 (España peninsular) | Tarifa regulada |
+| `1293` | Demanda real | `demand` | Horaria (agregada de 5 min) | MW | 8741 | Demanda peninsular real |
+| `600`  | Precio mercado SPOT diario | `pricing` | Horaria (agregada de 15 min) | €/MWh | **3** (país España) | Precio mayorista MIBEL; sin desagregación por sistema eléctrico |
+| `10211` | Precio horario final (suma de componentes) | `pricing` | Horaria | €/MWh | 8741 | Precio final unificado (no es OMIE puro: incluye ajustes) |
+| `10355` | CO2 Asociado Generación T.Real | `emissions` | Horaria (agregada de 5 min) | tCO2/MWh | 8741 | Factor de emisiones en tiempo real |
 
 ### Tier 2 — Adicionales (post-MVP)
 
@@ -197,6 +199,10 @@ Response (indicador 1001, truncada):
 
 ### Geo IDs útiles
 
+ESIOS no usa un único espacio de `geo_id`. Cada indicador declara qué taxonomía publica:
+
+**Sistema eléctrico (usado por demanda y generación):**
+
 | `geo_id` | Sistema eléctrico |
 |----------|-------------------|
 | `8741` | España / Península |
@@ -204,6 +210,16 @@ Response (indicador 1001, truncada):
 | `8743` | Baleares |
 | `8744` | Ceuta |
 | `8745` | Melilla |
+
+**País (usado por precios de mercado mayorista — SPOT diario, intradiario):**
+
+| `geo_id` | País |
+|----------|------|
+| `1` | Portugal |
+| `2` | Francia |
+| `3` | España |
+
+> **Verificar al añadir un indicador nuevo**: probar `GET /indicators/{id}?start_date=...&end_date=...` *sin* `geo_ids[]` y mirar los `geo_id` que aparecen en `values[]`. No asumir que 8741 funciona para todo.
 
 ---
 
